@@ -3,28 +3,35 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BLOOD_GROUPS, mockDonors, type Donor } from "@/data/mockData";
+import { BLOOD_GROUPS } from "@/data/mockData";
+import { donorApi, type DonorResult } from "@/services/api";
 import DonorCard from "@/components/DonorCard";
 import { Search as SearchIcon, Loader2 } from "lucide-react";
 
 const Search = () => {
   const [bloodGroup, setBloodGroup] = useState("");
   const [city, setCity] = useState("");
-  const [results, setResults] = useState<Donor[] | null>(null);
+  const [results, setResults] = useState<DonorResult[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      const filtered = mockDonors.filter((d) => {
-        const matchBG = !bloodGroup || d.bloodGroup === bloodGroup;
-        const matchCity = !city.trim() || d.city.toLowerCase().includes(city.toLowerCase());
-        return matchBG && matchCity;
+    setError("");
+    try {
+      const res = await donorApi.search({
+        bloodGroup: bloodGroup || undefined,
+        city: city.trim() || undefined,
       });
-      setResults(filtered);
+      setResults(res.data);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Search failed";
+      setError(message);
+      setResults([]);
+    } finally {
       setLoading(false);
-    }, 600);
+    }
   };
 
   return (
@@ -56,6 +63,10 @@ const Search = () => {
         </Button>
       </form>
 
+      {error && (
+        <p className="mb-4 text-sm text-destructive">{error}</p>
+      )}
+
       {loading && (
         <div className="py-10 text-center text-muted-foreground">
           <Loader2 className="mx-auto h-6 w-6 animate-spin" />
@@ -73,7 +84,7 @@ const Search = () => {
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
               {results.map((d) => (
-                <DonorCard key={d.id} name={d.name} bloodGroup={d.bloodGroup} city={d.city} phone={d.phone} available={d.available} />
+                <DonorCard key={d._id} name={d.fullName} bloodGroup={d.bloodGroup} city={d.city} phone={d.phone} available={d.available} />
               ))}
             </div>
           )}

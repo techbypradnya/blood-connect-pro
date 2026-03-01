@@ -5,15 +5,20 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BLOOD_GROUPS } from "@/data/mockData";
+import { requestApi } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { AlertTriangle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const EmergencyRequest = () => {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    patientName: "", bloodGroup: "", hospital: "", city: "", contact: "", requiredDate: "",
+    patientName: "", bloodGroup: "", hospital: "", city: "", contact: "", unitsRequired: "1",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { token, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -22,20 +27,37 @@ const EmergencyRequest = () => {
     if (!form.hospital.trim()) e.hospital = "Hospital name is required";
     if (!form.city.trim()) e.city = "City is required";
     if (!form.contact.match(/^\+?\d[\d\s-]{7,}$/)) e.contact = "Valid contact number is required";
-    if (!form.requiredDate) e.requiredDate = "Required date is needed";
+    const units = parseInt(form.unitsRequired);
+    if (isNaN(units) || units < 1 || units > 10) e.unitsRequired = "Units must be between 1 and 10";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      toast.error("Please login to submit an emergency request");
+      navigate("/login");
+      return;
+    }
     if (!validate()) return;
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await requestApi.create({
+        bloodGroup: form.bloodGroup,
+        unitsRequired: parseInt(form.unitsRequired),
+        hospitalName: form.hospital,
+        city: form.city,
+        contactNumber: form.contact,
+      }, token!);
       toast.success("Emergency request submitted! Donors will be notified.");
-      setForm({ patientName: "", bloodGroup: "", hospital: "", city: "", contact: "", requiredDate: "" });
-    }, 1000);
+      setForm({ patientName: "", bloodGroup: "", hospital: "", city: "", contact: "", unitsRequired: "1" });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to submit request";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const Field = ({ label, name, type = "text", placeholder }: { label: string; name: string; type?: string; placeholder?: string }) => (
@@ -80,10 +102,10 @@ const EmergencyRequest = () => {
               {errors.bloodGroup && <p className="text-xs text-destructive">{errors.bloodGroup}</p>}
             </div>
 
+            <Field label="Units Required" name="unitsRequired" type="number" placeholder="1" />
             <Field label="Hospital Name" name="hospital" placeholder="City Hospital" />
             <Field label="City" name="city" placeholder="Mumbai" />
             <Field label="Contact Number" name="contact" type="tel" placeholder="+91 98765 43210" />
-            <Field label="Required Date" name="requiredDate" type="date" />
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Submitting..." : "Submit Emergency Request"}
