@@ -1,5 +1,37 @@
 const User = require("../models/User");
 
+
+// Search donors
+exports.searchDonors = async (req, res, next) => {
+  try {
+    const { bloodGroup, city } = req.query;
+
+    const query = {
+      role: "donor",
+      available: true
+    };
+
+    if (bloodGroup) {
+      query.bloodGroup = bloodGroup;
+    }
+
+    if (city) {
+      query.city = city;
+    }
+
+    const donors = await User.find(query).select("-password");
+
+    res.status(200).json({
+      success: true,
+      count: donors.length,
+      data: donors
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get all donors
 // @route   GET /api/donors
 // @access  Public

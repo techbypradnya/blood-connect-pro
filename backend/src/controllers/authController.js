@@ -1,5 +1,48 @@
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+
+// LOGIN USER
+exports.loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // 1. Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    // 2. Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    // 3. Create JWT token
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // 4. Send response
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.fullName,
+        email: user.email,
+        role: user.role
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
 
 // @desc    Register a new user
 // @route   POST /api/auth/register

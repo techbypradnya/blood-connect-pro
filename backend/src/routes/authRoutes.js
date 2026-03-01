@@ -1,9 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const { body } = require("express-validator");
+
 const validate = require("../middlewares/validate");
 const { register, login } = require("../controllers/authController");
 
+// ------------------ REGISTER ------------------
 router.post(
   "/register",
   [
@@ -11,15 +13,21 @@ router.post(
     body("email").isEmail().withMessage("Valid email is required"),
     body("phone").matches(/^\+?[\d\s-]{10,15}$/).withMessage("Valid phone number is required"),
     body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
-    body("bloodGroup").isIn(["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]).withMessage("Valid blood group is required"),
+    body("bloodGroup")
+      .isIn(["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"])
+      .withMessage("Valid blood group is required"),
     body("city").trim().notEmpty().withMessage("City is required"),
     body("state").trim().notEmpty().withMessage("State is required"),
-    body("role").optional().isIn(["donor", "recipient"]).withMessage("Role must be donor or recipient"),
+    body("role")
+      .optional()
+      .isIn(["donor", "recipient"])
+      .withMessage("Role must be donor or recipient"),
   ],
   validate,
   register
 );
 
+// ------------------ LOGIN ------------------
 router.post(
   "/login",
   [
