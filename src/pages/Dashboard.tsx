@@ -5,16 +5,38 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { mockDonors } from "@/data/mockData";
-import { LogOut, Edit, User, Phone, MapPin, Droplets, CalendarDays } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { donorApi } from "@/services/api";
+import { LogOut, Edit, Phone, MapPin, Droplets, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 const Dashboard = () => {
-  const donor = mockDonors[0]; // Mock logged-in user
-  const [available, setAvailable] = useState(donor.available);
+  const { user, token, logout, isAuthenticated } = useAuth();
+  const [available, setAvailable] = useState(user?.available ?? true);
+  const [toggling, setToggling] = useState(false);
   const navigate = useNavigate();
 
+  if (!isAuthenticated || !user) {
+    navigate("/login");
+    return null;
+  }
+
+  const handleToggle = async (value: boolean) => {
+    setToggling(true);
+    try {
+      await donorApi.updateAvailability(value, token!);
+      setAvailable(value);
+      toast.success(value ? "You are now available for donation" : "You are now unavailable");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to update";
+      toast.error(message);
+    } finally {
+      setToggling(false);
+    }
+  };
+
   const handleLogout = () => {
+    logout();
     toast.success("Logged out successfully");
     navigate("/login");
   };
@@ -31,19 +53,19 @@ const Dashboard = () => {
       <Card className="card-shadow">
         <CardHeader className="flex flex-row items-center gap-4 pb-2">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent font-display text-xl font-bold text-primary">
-            {donor.bloodGroup}
+            {user.bloodGroup}
           </div>
           <div>
-            <CardTitle className="font-display text-xl">{donor.name}</CardTitle>
-            <p className="text-sm text-muted-foreground">{donor.email}</p>
+            <CardTitle className="font-display text-xl">{user.fullName}</CardTitle>
+            <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
         </CardHeader>
         <CardContent className="space-y-4 pt-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <InfoRow icon={Phone} label="Phone" value={donor.phone} />
-            <InfoRow icon={MapPin} label="City" value={donor.city} />
-            <InfoRow icon={Droplets} label="Blood Group" value={donor.bloodGroup} />
-            <InfoRow icon={CalendarDays} label="Last Donation" value={donor.lastDonation} />
+            <InfoRow icon={Mail} label="Email" value={user.email} />
+            <InfoRow icon={MapPin} label="City" value={`${user.city}, ${user.state}`} />
+            <InfoRow icon={Droplets} label="Blood Group" value={user.bloodGroup} />
+            <InfoRow icon={Phone} label="Role" value={user.role} />
           </div>
 
           <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-4">
@@ -56,10 +78,8 @@ const Dashboard = () => {
             <Switch
               id="availability"
               checked={available}
-              onCheckedChange={(v) => {
-                setAvailable(v);
-                toast.success(v ? "You are now available for donation" : "You are now unavailable");
-              }}
+              disabled={toggling}
+              onCheckedChange={handleToggle}
             />
           </div>
 

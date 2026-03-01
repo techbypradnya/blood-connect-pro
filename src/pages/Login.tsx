@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { authApi } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 const Login = () => {
@@ -12,8 +14,9 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: Record<string, string> = {};
     if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) errs.email = "Valid email is required";
@@ -22,11 +25,17 @@ const Login = () => {
     if (Object.keys(errs).length > 0) return;
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const res = await authApi.login(email, password);
+      login(res.data);
       toast.success("Login successful!");
       navigate("/dashboard");
-    }, 800);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Login failed";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

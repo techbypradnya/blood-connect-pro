@@ -1,19 +1,23 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BLOOD_GROUPS } from "@/data/mockData";
+import { authApi } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 const Register = () => {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    name: "", email: "", password: "", phone: "", bloodGroup: "", city: "", lastDonation: "",
+    name: "", email: "", password: "", phone: "", bloodGroup: "", city: "", state: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -23,18 +27,35 @@ const Register = () => {
     if (!form.phone.match(/^\+?\d[\d\s-]{7,}$/)) e.phone = "Valid phone number is required";
     if (!form.bloodGroup) e.bloodGroup = "Blood group is required";
     if (!form.city.trim()) e.city = "City is required";
+    if (!form.state.trim()) e.state = "State is required";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await authApi.register({
+        fullName: form.name,
+        email: form.email,
+        phone: form.phone,
+        password: form.password,
+        role: "donor",
+        bloodGroup: form.bloodGroup,
+        city: form.city,
+        state: form.state,
+      });
+      login(res.data);
+      toast.success("Registration successful!");
+      navigate("/dashboard");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Registration failed";
+      toast.error(message);
+    } finally {
       setLoading(false);
-      toast.success("Registration successful! You can now login.");
-    }, 1000);
+    }
   };
 
   const Field = ({ label, name, type = "text", placeholder }: { label: string; name: string; type?: string; placeholder?: string }) => (
@@ -80,7 +101,7 @@ const Register = () => {
             </div>
 
             <Field label="City" name="city" placeholder="Mumbai" />
-            <Field label="Last Donation Date" name="lastDonation" type="date" />
+            <Field label="State" name="state" placeholder="Maharashtra" />
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Registering..." : "Register as Donor"}
