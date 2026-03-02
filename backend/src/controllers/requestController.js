@@ -1,4 +1,5 @@
 const BloodRequest = require("../models/BloodRequest");
+const { notifyMatchingDonors } = require("../services/notificationService");
 
 // @desc    Create blood request
 // @route   POST /api/requests
@@ -7,6 +8,20 @@ exports.createRequest = async (req, res, next) => {
   try {
     req.body.requestedBy = req.user._id;
     const request = await BloodRequest.create(req.body);
+
+    // If emergency, notify matching donors asynchronously
+    if (request.emergency) {
+      // Don't await — fire and forget so response isn't blocked
+      notifyMatchingDonors(request)
+        .then(async () => {
+          request.emergencyNotifiedAt = new Date();
+          await request.save({ validateBeforeSave: false });
+        })
+        .catch((err) => {
+          console.error("[NOTIFICATION] Emergency notification pipeline error:", err.message);
+        });
+    }
+
     res.status(201).json({ success: true, data: request });
   } catch (error) {
     next(error);
@@ -38,7 +53,6 @@ exports.updateRequest = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Request not found" });
     }
 
-    // If a donor is accepting the request
     if (req.body.status === "accepted" && req.user.role === "donor") {
       request.acceptedBy = req.user._id;
       request.status = "accepted";
@@ -46,7 +60,6 @@ exports.updateRequest = async (req, res, next) => {
       request.requestedBy.toString() === req.user._id.toString() ||
       req.user.role === "admin"
     ) {
-      // Owner or admin can update status
       if (req.body.status) request.status = req.body.status;
     } else {
       return res.status(403).json({ success: false, message: "Not authorized" });

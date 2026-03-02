@@ -32,6 +32,14 @@ const bloodRequestSchema = new mongoose.Schema(
       type: String,
       required: [true, "Contact number is required"],
     },
+    emergency: {
+      type: Boolean,
+      default: false,
+    },
+    emergencyNotifiedAt: {
+      type: Date,
+      default: null,
+    },
     status: {
       type: String,
       enum: ["pending", "accepted", "completed"],
