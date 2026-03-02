@@ -3,9 +3,18 @@ const router = express.Router();
 const { body } = require("express-validator");
 
 const validate = require("../middlewares/validate");
-const { register, login } = require("../controllers/authController");
+const { protect } = require("../middlewares/auth");
+const {
+  register,
+  login,
+  verifyEmail,
+  forgotPassword,
+  resetPassword,
+  sendOtp,
+  verifyOtp,
+} = require("../controllers/authController");
 
-// ------------------ REGISTER ------------------
+// Register
 router.post(
   "/register",
   [
@@ -27,7 +36,7 @@ router.post(
   register
 );
 
-// ------------------ LOGIN ------------------
+// Login
 router.post(
   "/login",
   [
@@ -36,6 +45,35 @@ router.post(
   ],
   validate,
   login
+);
+
+// Email verification
+router.get("/verify-email/:token", verifyEmail);
+
+// Forgot password
+router.post(
+  "/forgot-password",
+  [body("email").isEmail().withMessage("Valid email is required")],
+  validate,
+  forgotPassword
+);
+
+// Reset password
+router.put(
+  "/reset-password/:token",
+  [body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters")],
+  validate,
+  resetPassword
+);
+
+// Phone OTP (protected — user must be logged in)
+router.post("/send-otp", protect, sendOtp);
+router.post(
+  "/verify-otp",
+  protect,
+  [body("otp").isLength({ min: 6, max: 6 }).withMessage("OTP must be 6 digits")],
+  validate,
+  verifyOtp
 );
 
 module.exports = router;

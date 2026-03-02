@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 
 const userSchema = new mongoose.Schema(
   {
@@ -25,7 +26,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
-      select: false, // Don't return password by default
+      select: false,
     },
     role: {
       type: String,
@@ -51,6 +52,26 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // Email verification fields
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationToken: String,
+    emailVerificationExpire: Date,
+
+    // Password reset fields
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
+
+    // Phone verification fields
+    phoneVerified: {
+      type: Boolean,
+      default: false,
+    },
+    phoneOtp: String,
+    phoneOtpExpire: Date,
   },
   { timestamps: true }
 );
@@ -66,6 +87,45 @@ userSchema.pre("save", async function (next) {
 // Compare entered password with hashed password
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// Generate email verification token
+userSchema.methods.getEmailVerificationToken = function () {
+  const token = crypto.randomBytes(32).toString("hex");
+
+  this.emailVerificationToken = crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex");
+
+  this.emailVerificationExpire = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+
+  return token;
+};
+
+// Generate password reset token
+userSchema.methods.getResetPasswordToken = function () {
+  const token = crypto.randomBytes(32).toString("hex");
+
+  this.resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex");
+
+  this.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+  return token;
+};
+
+// Generate phone OTP
+userSchema.methods.getPhoneOtp = function () {
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  this.phoneOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+  this.phoneOtpExpire = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+  return otp;
 };
 
 module.exports = mongoose.model("User", userSchema);
