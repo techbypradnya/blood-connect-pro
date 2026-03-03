@@ -289,3 +289,49 @@ exports.verifyOtp = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Resend verification email
+// @route   POST /api/auth/resend-verification
+// @access  Public
+exports.resendVerification = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "No account with that email" });
+    }
+
+    if (user.emailVerified) {
+      return res.status(400).json({ success: false, message: "Email is already verified" });
+    }
+
+    const verificationToken = user.getEmailVerificationToken();
+    await user.save({ validateBeforeSave: false });
+
+    const verifyUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/verify-email?token=${verificationToken}`;
+
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: "Blood Connect Pro — Verify Your Email",
+        html: `
+          <h2>Email Verification</h2>
+          <p>Hi ${user.fullName},</p>
+          <p>Please verify your email by clicking the link below:</p>
+          <a href="${verifyUrl}" style="display:inline-block;padding:12px 24px;background:#dc2626;color:#fff;text-decoration:none;border-radius:6px;">Verify Email</a>
+          <p>This link expires in 24 hours.</p>
+        `,
+      });
+
+      res.json({ success: true, message: "Verification email sent. Please check your inbox." });
+    } catch (emailErr) {
+      user.emailVerificationToken = undefined;
+      user.emailVerificationExpire = undefined;
+      await user.save({ validateBeforeSave: false });
+      return res.status(500).json({ success: false, message: "Email could not be sent" });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
