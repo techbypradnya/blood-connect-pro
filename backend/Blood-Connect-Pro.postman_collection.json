@@ -56,9 +56,27 @@
         {
           "name": "Verify Email",
           "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/auth/verify-email/:token",
-            "description": "Replace :token with the verification token received in the registration email."
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/verify-email",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"PASTE_TOKEN_FROM_EMAIL_LINK_HERE\"\n}"
+            },
+            "description": "Send the verification token from the email link query parameter (?token=...) in the request body."
+          }
+        },
+        {
+          "name": "Resend Verification Email",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/resend-verification",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"aarav@example.com\"\n}"
+            },
+            "description": "Resend the verification email for an unverified user."
           }
         },
         {
