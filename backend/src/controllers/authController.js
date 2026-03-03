@@ -31,7 +31,7 @@ exports.register = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     // Build verification URL
-    const verifyUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/verify-email/${verificationToken}`;
+    const verifyUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/verify-email?token=${verificationToken}`;
 
     try {
       await sendEmail({
@@ -80,13 +80,19 @@ exports.register = async (req, res, next) => {
 };
 
 // @desc    Verify email
-// @route   GET /api/auth/verify-email/:token
+// @route   POST /api/auth/verify-email
 // @access  Public
 exports.verifyEmail = async (req, res, next) => {
   try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ success: false, message: "Verification token is required" });
+    }
+
     const hashedToken = crypto
       .createHash("sha256")
-      .update(req.params.token)
+      .update(token)
       .digest("hex");
 
     const user = await User.findOne({
