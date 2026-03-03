@@ -12,6 +12,7 @@ const {
   resetPassword,
   sendOtp,
   verifyOtp,
+  resendVerification,
 } = require("../controllers/authController");
 
 // Register
@@ -53,6 +54,14 @@ router.post(
   [body("token").trim().notEmpty().withMessage("Verification token is required")],
   validate,
   verifyEmail
+);
+
+// Resend verification email
+router.post(
+  "/resend-verification",
+  [body("email").isEmail().withMessage("Valid email is required")],
+  validate,
+  resendVerification
 );
 
 // Forgot password

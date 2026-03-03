@@ -47,6 +47,9 @@ export const authApi = {
 
   login: (email: string, password: string) =>
     apiRequest<{ success: boolean; data: AuthUser }>("/auth/login", { method: "POST", body: { email, password } }),
+
+  resendVerification: (email: string) =>
+    apiRequest<{ success: boolean; message: string }>("/auth/resend-verification", { method: "POST", body: { email } }),
 };
 
 // ---- Donors ----
