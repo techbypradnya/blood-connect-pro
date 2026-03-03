@@ -48,7 +48,12 @@ router.post(
 );
 
 // Email verification
-router.get("/verify-email/:token", verifyEmail);
+router.post(
+  "/verify-email",
+  [body("token").trim().notEmpty().withMessage("Verification token is required")],
+  validate,
+  verifyEmail
+);
 
 // Forgot password
 router.post(
