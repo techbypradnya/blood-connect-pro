@@ -13,7 +13,6 @@ import Dashboard from "./pages/Dashboard";
 import Search from "./pages/Search";
 import EmergencyRequest from "./pages/EmergencyRequest";
 import Contact from "./pages/Contact";
-import VerifyEmail from "./pages/VerifyEmail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,7 +33,6 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/search" element={<Search />} />
             <Route path="/emergency-request" element={<EmergencyRequest />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

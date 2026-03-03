@@ -53,14 +53,6 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
 
-    // Email verification fields
-    emailVerified: {
-      type: Boolean,
-      default: false,
-    },
-    emailVerificationToken: String,
-    emailVerificationExpire: Date,
-
     // Password reset fields
     resetPasswordToken: String,
     resetPasswordExpire: Date,
@@ -87,20 +79,6 @@ userSchema.pre("save", async function (next) {
 // Compare entered password with hashed password
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
-};
-
-// Generate email verification token
-userSchema.methods.getEmailVerificationToken = function () {
-  const token = crypto.randomBytes(32).toString("hex");
-
-  this.emailVerificationToken = crypto
-    .createHash("sha256")
-    .update(token)
-    .digest("hex");
-
-  this.emailVerificationExpire = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
-
-  return token;
 };
 
 // Generate password reset token
