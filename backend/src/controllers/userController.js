@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const { checkEligibility } = require("../utils/eligibility");
 
 // @desc    Get all users
 // @route   GET /api/users
@@ -54,7 +55,26 @@ exports.updateUser = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    res.json({ success: true, data: user });
+    // Compute eligibility after update
+    const eligibility = checkEligibility(user.toObject());
+
+    res.json({ success: true, data: user, eligibility });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get donor eligibility status
+// @route   GET /api/users/:id/eligibility
+// @access  Private
+exports.getEligibility = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id).select("-__v");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    const eligibility = checkEligibility(user.toObject());
+    res.json({ success: true, data: eligibility });
   } catch (error) {
     next(error);
   }

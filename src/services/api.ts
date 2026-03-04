@@ -78,7 +78,10 @@ export const userApi = {
     apiRequest<{ success: boolean; data: DonorResult }>(`/users/${id}`, { token }),
 
   update: (id: string, body: Partial<DonorResult>, token: string) =>
-    apiRequest<{ success: boolean; data: DonorResult }>(`/users/${id}`, { method: "PUT", body, token }),
+    apiRequest<{ success: boolean; data: DonorResult; eligibility: EligibilityResult }>(`/users/${id}`, { method: "PUT", body, token }),
+
+  getEligibility: (id: string, token: string) =>
+    apiRequest<{ success: boolean; data: EligibilityResult }>(`/users/${id}/eligibility`, { token }),
 };
 
 // ---- Blood Requests ----
@@ -107,6 +110,18 @@ export interface AuthUser {
   state: string;
   available: boolean;
   token: string;
+  // Medical fields
+  height?: number;
+  weight?: number;
+  age?: number;
+  gender?: string;
+  hemoglobin?: number;
+  bloodPressure?: string;
+  lastDonationDate?: string;
+  hasMedicalConditions?: boolean;
+  medicalConditionsDesc?: string;
+  recentSurgery?: boolean;
+  onMedication?: boolean;
 }
 
 export interface DonorResult {
@@ -120,6 +135,23 @@ export interface DonorResult {
   state: string;
   available: boolean;
   createdAt: string;
+  height?: number;
+  weight?: number;
+  age?: number;
+  gender?: string;
+  hemoglobin?: number;
+  bloodPressure?: string;
+  lastDonationDate?: string;
+  hasMedicalConditions?: boolean;
+  medicalConditionsDesc?: string;
+  recentSurgery?: boolean;
+  onMedication?: boolean;
+}
+
+export interface EligibilityResult {
+  eligible: boolean;
+  reasons: string[];
+  bmi: number | null;
 }
 
 export interface BloodRequestResult {
