@@ -1,198 +1,55 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { useAuth } from "@/contexts/AuthContext";
-import { donorApi, userApi } from "@/services/api";
+import { donorApi } from "@/services/api";
+
 import {
   LogOut,
+  Edit,
   Phone,
   MapPin,
   Droplets,
   Mail,
-  Save,
-  CheckCircle2,
-  XCircle,
-  Activity,
-  Ruler,
-  Weight,
   Calendar,
   Heart,
+  CheckCircle,
+  AlertCircle
 } from "lucide-react";
+
 import { toast } from "sonner";
 
-interface MedicalForm {
-  height: string;
-  weight: string;
-  age: string;
-  gender: string;
-  hemoglobin: string;
-  bloodPressure: string;
-  lastDonationDate: string;
-  hasMedicalConditions: boolean;
-  medicalConditionsDesc: string;
-  recentSurgery: boolean;
-  onMedication: boolean;
-}
-
 const Dashboard = () => {
-  const { user, token, logout, isAuthenticated, login } = useAuth();
-  const [available, setAvailable] = useState(user?.available ?? true);
-  const [toggling, setToggling] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const { user, token, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState<MedicalForm>({
-    height: "",
-    weight: "",
-    age: "",
-    gender: "",
-    hemoglobin: "",
-    bloodPressure: "",
-    lastDonationDate: "",
-    hasMedicalConditions: false,
-    medicalConditionsDesc: "",
-    recentSurgery: false,
-    onMedication: false,
-  });
+  const [available, setAvailable] = useState(user?.available ?? true);
+  const [toggling, setToggling] = useState(false);
 
-  // Load existing medical data from user
-  useEffect(() => {
-    if (user) {
-      setForm({
-        height: user.height?.toString() ?? "",
-        weight: user.weight?.toString() ?? "",
-        age: user.age?.toString() ?? "",
-        gender: user.gender ?? "",
-        hemoglobin: user.hemoglobin?.toString() ?? "",
-        bloodPressure: user.bloodPressure ?? "",
-        lastDonationDate: user.lastDonationDate
-          ? new Date(user.lastDonationDate).toISOString().split("T")[0]
-          : "",
-        hasMedicalConditions: user.hasMedicalConditions ?? false,
-        medicalConditionsDesc: user.medicalConditionsDesc ?? "",
-        recentSurgery: user.recentSurgery ?? false,
-        onMedication: user.onMedication ?? false,
-      });
-    }
-  }, [user]);
+  const [height, setHeight] = useState("");
+  const [weight, setWeight] = useState("");
+  const [age, setAge] = useState("");
+  const [hemoglobin, setHemoglobin] = useState("");
+  const [lastDonationDate, setLastDonationDate] = useState("");
+  const [medicalConditions, setMedicalConditions] = useState<"yes" | "no" | "">("");
+  const [onMedication, setOnMedication] = useState<"yes" | "no" | "">("");
 
-  // Real-time BMI calculation
-  const bmi = useMemo(() => {
-    const h = parseFloat(form.height);
-    const w = parseFloat(form.weight);
-    if (!h || !w || h <= 0) return null;
-    const hm = h / 100;
-    return parseFloat((w / (hm * hm)).toFixed(1));
-  }, [form.height, form.weight]);
-
-  // Client-side eligibility
-  const eligibility = useMemo(() => {
-    const reasons: string[] = [];
-    const age = parseFloat(form.age);
-    const weight = parseFloat(form.weight);
-    const hb = parseFloat(form.hemoglobin);
-
-    if (age && (age < 18 || age > 60)) reasons.push("Age must be between 18 and 60");
-    if (weight && weight < 50) reasons.push("Minimum weight is 50 kg");
-    if (bmi !== null) {
-      if (bmi < 18.5) reasons.push("BMI is below 18.5 – underweight");
-      else if (bmi > 35) reasons.push("BMI is above safe range");
-    }
-    if (hb && hb < 12.5) reasons.push("Hemoglobin must be above 12.5 g/dL");
-    if (form.lastDonationDate) {
-      const diff = (Date.now() - new Date(form.lastDonationDate).getTime()) / (1000 * 60 * 60 * 24);
-      if (diff < 90) reasons.push("Minimum 3 months gap since last donation");
-    }
-    if (form.hasMedicalConditions) reasons.push("Existing medical conditions reported");
-    if (form.recentSurgery) reasons.push("Recent surgery reported");
-    if (form.onMedication) reasons.push("Currently on medication");
-
-    const hasData = form.age || form.weight || form.hemoglobin;
-    return { eligible: hasData ? reasons.length === 0 : null, reasons };
-  }, [form, bmi]);
+  const [bmi, setBmi] = useState<number | null>(null);
+  const [eligibilityStatus, setEligibilityStatus] = useState<boolean | null>(null);
+  const [eligibilityChecked, setEligibilityChecked] = useState(false);
 
   if (!isAuthenticated || !user) {
     navigate("/login");
     return null;
   }
-
-  const handleToggle = async (value: boolean) => {
-    setToggling(true);
-    try {
-      await donorApi.updateAvailability(value, token!);
-      setAvailable(value);
-      toast.success(value ? "You are now available for donation" : "You are now unavailable");
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to update";
-      toast.error(message);
-    } finally {
-      setToggling(false);
-    }
-  };
-
-  const handleSaveMedical = async () => {
-    // Client validation
-    const age = parseFloat(form.age);
-    const weight = parseFloat(form.weight);
-    const height = parseFloat(form.height);
-    const hemoglobin = parseFloat(form.hemoglobin);
-
-    if (form.age && (isNaN(age) || age < 1 || age > 150)) {
-      toast.error("Please enter a valid age");
-      return;
-    }
-    if (form.weight && (isNaN(weight) || weight < 20 || weight > 300)) {
-      toast.error("Please enter a valid weight (20–300 kg)");
-      return;
-    }
-    if (form.height && (isNaN(height) || height < 50 || height > 300)) {
-      toast.error("Please enter a valid height (50–300 cm)");
-      return;
-    }
-    if (form.hemoglobin && (isNaN(hemoglobin) || hemoglobin < 0 || hemoglobin > 30)) {
-      toast.error("Please enter a valid hemoglobin level");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const body: Record<string, unknown> = {};
-      if (form.height) body.height = height;
-      if (form.weight) body.weight = weight;
-      if (form.age) body.age = age;
-      if (form.gender) body.gender = form.gender;
-      if (form.hemoglobin) body.hemoglobin = hemoglobin;
-      if (form.bloodPressure) body.bloodPressure = form.bloodPressure;
-      if (form.lastDonationDate) body.lastDonationDate = form.lastDonationDate;
-      body.hasMedicalConditions = form.hasMedicalConditions;
-      body.medicalConditionsDesc = form.hasMedicalConditions ? form.medicalConditionsDesc : "";
-      body.recentSurgery = form.recentSurgery;
-      body.onMedication = form.onMedication;
-
-      const res = await userApi.update(user._id, body as any, token!);
-      // Persist updated user to context
-      login({ ...user, ...res.data, token: token! });
-      toast.success("Medical profile saved successfully");
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to save";
-      toast.error(message);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleLogout = () => {
     logout();
@@ -200,267 +57,242 @@ const Dashboard = () => {
     navigate("/login");
   };
 
-  const updateField = (field: keyof MedicalForm, value: string | boolean) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+  const handleToggle = async (value: boolean) => {
+    setToggling(true);
+    try {
+      await donorApi.updateAvailability(value, token!);
+      setAvailable(value);
+      toast.success(value ? "You are now available for donation" : "You are now unavailable");
+    } catch {
+      toast.error("Failed to update availability");
+    } finally {
+      setToggling(false);
+    }
   };
 
+  const calculateBMI = (h: number, w: number) => {
+    if (h > 0 && w > 0) {
+      const heightMeters = h / 100;
+      const bmiValue = w / (heightMeters * heightMeters);
+      setBmi(Math.round(bmiValue * 10) / 10);
+    }
+  };
+
+  const handleHeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const h = parseFloat(e.target.value) || 0;
+    setHeight(e.target.value);
+    if (weight) calculateBMI(h, parseFloat(weight));
+  };
+
+  const handleWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const w = parseFloat(e.target.value) || 0;
+    setWeight(e.target.value);
+    if (height) calculateBMI(parseFloat(height), w);
+  };
+
+  const checkEligibility = () => {
+    setEligibilityChecked(true);
+
+    const ageNum = parseFloat(age);
+    const weightNum = parseFloat(weight);
+    const hemoglobinNum = parseFloat(hemoglobin);
+
+    if (!height || !weight || !age || !hemoglobin || !lastDonationDate || !medicalConditions || !onMedication) {
+      toast.error("Please fill all fields");
+      return;
+    }
+
+    const ageValid = ageNum >= 18 && ageNum <= 60;
+    const weightValid = weightNum >= 50;
+    const bmiValid = bmi !== null && bmi >= 18.5;
+    const hemoglobinValid = hemoglobinNum >= 12.5;
+
+    const lastDonation = new Date(lastDonationDate);
+    const today = new Date();
+    const days = Math.floor((today.getTime() - lastDonation.getTime()) / (1000 * 60 * 60 * 24));
+
+    const donationGapValid = days >= 90;
+
+    const eligible =
+      ageValid &&
+      weightValid &&
+      bmiValid &&
+      hemoglobinValid &&
+      donationGapValid &&
+      medicalConditions === "no" &&
+      onMedication === "no";
+
+    setEligibilityStatus(eligible);
+
+    if (eligible) {
+      toast.success("You are eligible for blood donation.");
+    } else {
+      toast.error("You are currently not eligible for donation.");
+    }
+  };
+
+  const totalDonations = 5;
+  const livesSaved = totalDonations * 3;
+  const nextEligibleDate = new Date(Date.now() + 90 * 86400000).toLocaleDateString();
+
+  const upcomingRequests = [
+    { id: 1, hospital: "City Hospital", bloodGroup: "O+", urgency: "High", requiredBefore: "2026-03-10" },
+    { id: 2, hospital: "Apollo Hospital", bloodGroup: "B+", urgency: "Normal", requiredBefore: "2026-03-12" }
+  ];
+
+  const donationHistory = [
+    { date: "2025-12-15", hospital: "City Hospital", bloodGroup: "O+", status: "Completed" },
+    { date: "2025-09-20", hospital: "Apollo Hospital", bloodGroup: "O+", status: "Completed" }
+  ];
+
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-10 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold">Donor Dashboard</h1>
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={handleLogout}>
-          <LogOut className="h-4 w-4" /> Logout
-        </Button>
+    <div className="min-h-screen bg-background">
+      <div className="border-b bg-card">
+        <div className="container mx-auto max-w-5xl px-4 py-6 flex justify-between">
+          <h1 className="text-2xl font-bold">Donor Dashboard</h1>
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+            <LogOut className="h-4 w-4 mr-1" /> Logout
+          </Button>
+        </div>
       </div>
 
-      {/* Profile Card */}
-      <Card className="card-shadow">
-        <CardHeader className="flex flex-row items-center gap-4 pb-2">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent font-display text-xl font-bold text-accent-foreground">
-            {user.bloodGroup}
-          </div>
-          <div>
-            <CardTitle className="font-display text-xl">{user.fullName}</CardTitle>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <InfoRow icon={Mail} label="Email" value={user.email} />
-            <InfoRow icon={MapPin} label="City" value={`${user.city}, ${user.state}`} />
-            <InfoRow icon={Droplets} label="Blood Group" value={user.bloodGroup} />
-            <InfoRow icon={Phone} label="Role" value={user.role} />
-          </div>
+      <div className="container mx-auto max-w-5xl px-4 py-8 space-y-8">
 
-          <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-4">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="availability" className="font-medium">Availability Status</Label>
-              <Badge variant={available ? "default" : "secondary"}>
-                {available ? "Available" : "Not Available"}
-              </Badge>
-            </div>
-            <Switch id="availability" checked={available} disabled={toggling} onCheckedChange={handleToggle} />
-          </div>
-        </CardContent>
-      </Card>
+        <Tabs defaultValue="overview">
 
-      {/* Eligibility Status */}
-      {eligibility.eligible !== null && (
-        <Card className={`border-2 ${eligibility.eligible ? "border-primary/40 bg-accent/50" : "border-destructive/40 bg-destructive/5"}`}>
-          <CardContent className="flex items-start gap-3 py-4">
-            {eligibility.eligible ? (
-              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-            ) : (
-              <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-            )}
-            <div className="space-y-1">
-              <p className={`font-semibold ${eligibility.eligible ? "text-primary" : "text-destructive"}`}>
-                {eligibility.eligible
-                  ? "✅ You are eligible for blood donation."
-                  : "❌ You are not eligible for blood donation."}
-              </p>
-              {!eligibility.eligible && (
-                <ul className="list-disc pl-4 text-sm text-muted-foreground space-y-0.5">
-                  {eligibility.reasons.map((r, i) => (
-                    <li key={i}>{r}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          <TabsList className="grid grid-cols-4 max-w-md">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="health">Health</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
+            <TabsTrigger value="requests">Requests</TabsTrigger>
+          </TabsList>
 
-      {/* BMI Display */}
-      {bmi !== null && (
-        <Card className="card-shadow">
-          <CardContent className="flex items-center gap-4 py-4">
-            <Activity className="h-6 w-6 text-primary" />
-            <div>
-              <p className="text-sm text-muted-foreground">Calculated BMI</p>
-              <p className="text-2xl font-bold text-foreground">{bmi}</p>
-            </div>
-            <Badge
-              variant={bmi >= 18.5 && bmi <= 35 ? "default" : "destructive"}
-              className="ml-auto"
-            >
-              {bmi < 18.5 ? "Underweight" : bmi <= 24.9 ? "Normal" : bmi <= 29.9 ? "Overweight" : bmi <= 35 ? "Obese" : "High Risk"}
-            </Badge>
-          </CardContent>
-        </Card>
-      )}
+          <TabsContent value="overview">
 
-      {/* Medical Details Form */}
-      <Card className="card-shadow">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 font-display text-lg">
-            <Heart className="h-5 w-5 text-primary" />
-            Medical & Physical Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {/* Height */}
-            <div className="space-y-1.5">
-              <Label htmlFor="height" className="flex items-center gap-1.5">
-                <Ruler className="h-3.5 w-3.5 text-muted-foreground" /> Height (cm)
-              </Label>
-              <Input
-                id="height"
-                type="number"
-                placeholder="170"
-                value={form.height}
-                onChange={(e) => updateField("height", e.target.value)}
-                min={50}
-                max={300}
-              />
+            <div className="grid sm:grid-cols-3 gap-4 mt-6">
+
+              <Card>
+                <CardContent className="pt-6">
+                  <p>Total Donations</p>
+                  <p className="text-2xl font-bold">{totalDonations}</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <p>Lives Saved</p>
+                  <p className="text-2xl font-bold">{livesSaved}</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <p>Next Eligible</p>
+                  <p>{nextEligibleDate}</p>
+                </CardContent>
+              </Card>
+
             </div>
 
-            {/* Weight */}
-            <div className="space-y-1.5">
-              <Label htmlFor="weight" className="flex items-center gap-1.5">
-                <Weight className="h-3.5 w-3.5 text-muted-foreground" /> Weight (kg)
-              </Label>
-              <Input
-                id="weight"
-                type="number"
-                placeholder="65"
-                value={form.weight}
-                onChange={(e) => updateField("weight", e.target.value)}
-                min={20}
-                max={300}
-              />
-            </div>
+          </TabsContent>
 
-            {/* Age */}
-            <div className="space-y-1.5">
-              <Label htmlFor="age">Age</Label>
-              <Input
-                id="age"
-                type="number"
-                placeholder="25"
-                value={form.age}
-                onChange={(e) => updateField("age", e.target.value)}
-                min={1}
-                max={150}
-              />
-            </div>
+          <TabsContent value="health">
 
-            {/* Gender */}
-            <div className="space-y-1.5">
-              <Label>Gender</Label>
-              <Select value={form.gender} onValueChange={(v) => updateField("gender", v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Health Eligibility Check</CardTitle>
+              </CardHeader>
 
-            {/* Hemoglobin */}
-            <div className="space-y-1.5">
-              <Label htmlFor="hemoglobin" className="flex items-center gap-1.5">
-                <Droplets className="h-3.5 w-3.5 text-muted-foreground" /> Hemoglobin (g/dL)
-              </Label>
-              <Input
-                id="hemoglobin"
-                type="number"
-                step="0.1"
-                placeholder="14.0"
-                value={form.hemoglobin}
-                onChange={(e) => updateField("hemoglobin", e.target.value)}
-                min={0}
-                max={30}
-              />
-            </div>
+              <CardContent className="space-y-4">
 
-            {/* Blood Pressure */}
-            <div className="space-y-1.5">
-              <Label htmlFor="bp">Blood Pressure</Label>
-              <Input
-                id="bp"
-                type="text"
-                placeholder="120/80"
-                value={form.bloodPressure}
-                onChange={(e) => updateField("bloodPressure", e.target.value)}
-                maxLength={10}
-              />
-            </div>
+                <Input placeholder="Height (cm)" value={height} onChange={handleHeightChange}/>
+                <Input placeholder="Weight (kg)" value={weight} onChange={handleWeightChange}/>
+                <Input placeholder="Age" value={age} onChange={(e)=>setAge(e.target.value)}/>
+                <Input placeholder="Hemoglobin (g/dL)" value={hemoglobin} onChange={(e)=>setHemoglobin(e.target.value)}/>
+                <Input type="date" value={lastDonationDate} onChange={(e)=>setLastDonationDate(e.target.value)}/>
 
-            {/* Last Donation Date */}
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="lastDonation" className="flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5 text-muted-foreground" /> Last Donation Date
-              </Label>
-              <Input
-                id="lastDonation"
-                type="date"
-                value={form.lastDonationDate}
-                onChange={(e) => updateField("lastDonationDate", e.target.value)}
-                max={new Date().toISOString().split("T")[0]}
-              />
-            </div>
-          </div>
+                {bmi && (
+                  <p className="text-sm">BMI: <b>{bmi}</b></p>
+                )}
 
-          {/* Boolean toggles */}
-          <div className="space-y-3 rounded-lg border p-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="medCond" className="font-medium">Any Existing Medical Conditions?</Label>
-              <Switch
-                id="medCond"
-                checked={form.hasMedicalConditions}
-                onCheckedChange={(v) => updateField("hasMedicalConditions", v)}
-              />
-            </div>
-            {form.hasMedicalConditions && (
-              <Textarea
-                placeholder="Please describe your medical conditions..."
-                value={form.medicalConditionsDesc}
-                onChange={(e) => updateField("medicalConditionsDesc", e.target.value)}
-                maxLength={500}
-                className="mt-2"
-              />
-            )}
+                <Button className="w-full" onClick={checkEligibility}>
+                  Check Eligibility
+                </Button>
 
-            <div className="flex items-center justify-between">
-              <Label htmlFor="surgery" className="font-medium">Recent Surgery?</Label>
-              <Switch
-                id="surgery"
-                checked={form.recentSurgery}
-                onCheckedChange={(v) => updateField("recentSurgery", v)}
-              />
-            </div>
+                {eligibilityChecked && eligibilityStatus !== null && (
+                  <div className="p-3 border rounded">
+                    {eligibilityStatus ? (
+                      <p className="text-green-600 flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4"/> Eligible for donation
+                      </p>
+                    ) : (
+                      <p className="text-red-600 flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4"/> Not eligible currently
+                      </p>
+                    )}
+                  </div>
+                )}
 
-            <div className="flex items-center justify-between">
-              <Label htmlFor="meds" className="font-medium">Currently on Medication?</Label>
-              <Switch
-                id="meds"
-                checked={form.onMedication}
-                onCheckedChange={(v) => updateField("onMedication", v)}
-              />
-            </div>
-          </div>
+              </CardContent>
+            </Card>
 
-          <Button onClick={handleSaveMedical} disabled={saving} className="w-full gap-1.5">
-            <Save className="h-4 w-4" /> {saving ? "Saving..." : "Save Medical Details"}
-          </Button>
-        </CardContent>
-      </Card>
+          </TabsContent>
+
+          <TabsContent value="history">
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Donation History</CardTitle>
+              </CardHeader>
+
+              <CardContent>
+
+                {donationHistory.map((d,i)=>(
+                  <div key={i} className="flex justify-between border-b py-3">
+                    <div>
+                      <p>{d.hospital}</p>
+                      <p className="text-sm text-muted-foreground">{d.date}</p>
+                    </div>
+                    <Badge>{d.status}</Badge>
+                  </div>
+                ))}
+
+              </CardContent>
+            </Card>
+
+          </TabsContent>
+
+          <TabsContent value="requests">
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Blood Requests</CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-3">
+
+                {upcomingRequests.map(req=>(
+                  <div key={req.id} className="border rounded p-4">
+                    <p className="font-semibold">{req.hospital}</p>
+                    <p className="text-sm">Blood Group: {req.bloodGroup}</p>
+                    <p className="text-xs">Required by {req.requiredBefore}</p>
+
+                    <Button className="mt-3 w-full" disabled={!eligibilityStatus}>
+                      Respond
+                    </Button>
+                  </div>
+                ))}
+
+              </CardContent>
+            </Card>
+
+          </TabsContent>
+
+        </Tabs>
+
+      </div>
     </div>
   );
 };
-
-const InfoRow = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) => (
-  <div className="flex items-center gap-2 text-sm">
-    <Icon className="h-4 w-4 text-muted-foreground" />
-    <span className="text-muted-foreground">{label}:</span>
-    <span className="font-medium text-foreground">{value}</span>
-  </div>
-);
 
 export default Dashboard;
