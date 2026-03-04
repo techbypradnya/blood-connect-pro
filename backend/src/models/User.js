@@ -53,6 +53,19 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
 
+    // Medical / physical details
+    height: { type: Number, min: 50, max: 300 },        // cm
+    weight: { type: Number, min: 20, max: 300 },        // kg
+    age: { type: Number, min: 1, max: 150 },
+    gender: { type: String, enum: ["male", "female", "other", ""] },
+    hemoglobin: { type: Number, min: 0, max: 30 },      // g/dL
+    bloodPressure: { type: String, trim: true },         // e.g. "120/80"
+    lastDonationDate: { type: Date },
+    hasMedicalConditions: { type: Boolean, default: false },
+    medicalConditionsDesc: { type: String, trim: true, maxlength: 500 },
+    recentSurgery: { type: Boolean, default: false },
+    onMedication: { type: Boolean, default: false },
+
     // Password reset fields
     resetPasswordToken: String,
     resetPasswordExpire: Date,
