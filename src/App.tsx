@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import Navbar from "@/components/Navbar";
+import Layout from "@/components/Layout";
 import Index from "./pages/Index";
 import About from "./pages/About";
 import Register from "./pages/Register";
@@ -15,6 +15,7 @@ import EmergencyRequest from "./pages/EmergencyRequest";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import VerifyEmail from "./pages/VerifyEmail";
+import BloodCamps from "./pages/BloodCamps";
 
 const queryClient = new QueryClient();
 
@@ -25,7 +26,7 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <BrowserRouter>
-          <Navbar />
+        <Layout>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/about" element={<About />} />
@@ -34,11 +35,13 @@ const App = () => (
             <Route path="/verify-email/:token" element={<VerifyEmail />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/search" element={<Search />} />
+            <Route path="/blood-camps" element={<BloodCamps />} />
             <Route path="/emergency-request" element={<EmergencyRequest />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
+        </Layout>
+      </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

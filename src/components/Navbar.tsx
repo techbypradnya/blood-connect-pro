@@ -4,6 +4,7 @@ import { Menu, X, Droplets } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
@@ -38,24 +39,78 @@ const Navbar = () => {
         {/* Desktop */}
         <div className="hidden items-center gap-1 lg:flex">
           {navItems.map((item) => (
-            <Link key={item.path} to={item.path}>
-              <Button variant={location.pathname === item.path ? "default" : "ghost"} size="sm">
+            <Link
+              key={item.path}
+              to={item.path}
+              className="relative group"
+              onClick={() => setOpen(false)}
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  location.pathname === item.path
+                    ? "text-primary font-semibold"
+                    : "text-foreground",
+                  "transition-colors"
+                )}
+              >
                 {item.label}
               </Button>
+              <span
+                className={cn(
+                  "absolute left-0 -bottom-0.5 h-0.5 bg-primary transition-all duration-300",
+                  location.pathname === item.path
+                    ? "w-full"
+                    : "w-0 group-hover:w-full"
+                )}
+              />
             </Link>
           ))}
           {isAuthenticated ? (
             <>
-              <Link to="/dashboard" className="ml-2">
-                <Button variant={location.pathname === "/dashboard" ? "default" : "outline"} size="sm">
+              <Link to="/dashboard" className="ml-2 relative group" onClick={() => setOpen(false)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    location.pathname === "/dashboard"
+                      ? "text-primary font-semibold"
+                      : "text-foreground",
+                    "transition-colors"
+                  )}
+                >
                   {user?.fullName?.split(" ")[0] || "Dashboard"}
                 </Button>
+                <span
+                  className={cn(
+                    "absolute left-0 -bottom-0.5 h-0.5 bg-primary transition-all duration-300",
+                    location.pathname === "/dashboard"
+                      ? "w-full"
+                      : "w-0 group-hover:w-full"
+                  )}
+                />
               </Link>
               <Button variant="ghost" size="sm" onClick={handleLogout}>Logout</Button>
             </>
           ) : (
-            <Link to="/login" className="ml-2">
-              <Button variant="outline" size="sm">Login</Button>
+            <Link to="/login" className="ml-2 relative group" onClick={() => setOpen(false)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  location.pathname === "/login" ? "text-primary font-semibold" : "text-foreground",
+                  "transition-colors"
+                )}
+              >
+                Login
+              </Button>
+              <span
+                className={cn(
+                  "absolute left-0 -bottom-0.5 h-0.5 bg-primary transition-all duration-300",
+                  location.pathname === "/login" ? "w-full" : "w-0 group-hover:w-full"
+                )}
+              />
             </Link>
           )}
         </div>
@@ -68,24 +123,72 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       {open && (
-        <div className="border-t bg-card px-4 pb-4 lg:hidden">
+        <div className="border-t bg-card px-4 pb-4 lg:hidden transition-all duration-300 ease-in-out">
           {navItems.map((item) => (
-            <Link key={item.path} to={item.path} onClick={() => setOpen(false)}>
-              <Button variant={location.pathname === item.path ? "default" : "ghost"} className="w-full justify-start" size="sm">
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => setOpen(false)}
+              className="relative group"
+            >
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start transition-colors",
+                  location.pathname === item.path ? "text-primary font-semibold" : "text-foreground"
+                )}
+                size="sm"
+              >
                 {item.label}
               </Button>
+              <span
+                className={cn(
+                  "absolute left-0 -bottom-0.5 h-0.5 bg-primary transition-all duration-300",
+                  location.pathname === item.path ? "w-full" : "w-0 group-hover:w-full"
+                )}
+              />
             </Link>
           ))}
           {isAuthenticated ? (
             <>
-              <Link to="/dashboard" onClick={() => setOpen(false)}>
-                <Button variant="outline" className="mt-1 w-full justify-start" size="sm">Dashboard</Button>
+              <Link to="/dashboard" onClick={() => setOpen(false)} className="relative group">
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "mt-1 w-full justify-start transition-colors",
+                    location.pathname === "/dashboard" ? "text-primary font-semibold" : "text-foreground"
+                  )}
+                  size="sm"
+                >
+                  Dashboard
+                </Button>
+                <span
+                  className={cn(
+                    "absolute left-0 -bottom-0.5 h-0.5 bg-primary transition-all duration-300",
+                    location.pathname === "/dashboard" ? "w-full" : "w-0 group-hover:w-full"
+                  )}
+                />
               </Link>
               <Button variant="ghost" className="mt-1 w-full justify-start" size="sm" onClick={handleLogout}>Logout</Button>
             </>
           ) : (
-            <Link to="/login" onClick={() => setOpen(false)}>
-              <Button variant="outline" className="mt-1 w-full justify-start" size="sm">Login</Button>
+            <Link to="/login" onClick={() => setOpen(false)} className="relative group">
+              <Button
+                variant="ghost"
+                className={cn(
+                  "mt-1 w-full justify-start transition-colors",
+                  location.pathname === "/login" ? "text-primary font-semibold" : "text-foreground"
+                )}
+                size="sm"
+              >
+                Login
+              </Button>
+              <span
+                className={cn(
+                  "absolute left-0 -bottom-0.5 h-0.5 bg-primary transition-all duration-300",
+                  location.pathname === "/login" ? "w-full" : "w-0 group-hover:w-full"
+                )}
+              />
             </Link>
           )}
         </div>

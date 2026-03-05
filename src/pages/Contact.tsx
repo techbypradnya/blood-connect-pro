@@ -26,7 +26,7 @@ const Contact = () => {
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col animate-fade-in">
       {/* Hero */}
       <section className="hero-gradient py-20 text-center text-primary-foreground">
         <div className="container mx-auto px-4">

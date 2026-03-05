@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { donorApi } from "@/services/api";
@@ -22,29 +22,71 @@ import {
   Calendar,
   Heart,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  User,
+  Activity,
+  History,
+  MapPinIcon,
+  Loader2,
+  Award,
+  Users,
+  Clock,
+  UserCircle
 } from "lucide-react";
 
 import { toast } from "sonner";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+interface BMIResult {
+  value: number;
+  category: string;
+  eligible: boolean;
+  color: string;
+}
 
 const Dashboard = () => {
   const { user, token, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
+  // Availability toggle
   const [available, setAvailable] = useState(user?.available ?? true);
   const [toggling, setToggling] = useState(false);
 
+  // BMI Calculator State
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
-  const [age, setAge] = useState("");
-  const [hemoglobin, setHemoglobin] = useState("");
-  const [lastDonationDate, setLastDonationDate] = useState("");
-  const [medicalConditions, setMedicalConditions] = useState<"yes" | "no" | "">("");
-  const [onMedication, setOnMedication] = useState<"yes" | "no" | "">("");
+  const [bmiResult, setBmiResult] = useState<BMIResult | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
 
-  const [bmi, setBmi] = useState<number | null>(null);
-  const [eligibilityStatus, setEligibilityStatus] = useState<boolean | null>(null);
-  const [eligibilityChecked, setEligibilityChecked] = useState(false);
+  // Mock data for dashboard
+  const totalDonations = 5;
+  const livesSaved = totalDonations * 3;
+  const lastDonationDate = "2025-12-15";
+
+  const upcomingRequests = [
+    { id: 1, patientBloodGroup: "A+", hospital: "City Hospital", urgency: "High", location: "Mumbai" },
+    { id: 2, patientBloodGroup: "B+", hospital: "Apollo Hospital", urgency: "Normal", location: "Delhi" }
+  ];
+
+  const donationHistory = [
+    { date: "2025-12-15", hospital: "City Hospital", bloodGroup: "O+", units: 1, status: "Completed" },
+    { date: "2025-09-20", hospital: "Apollo Hospital", bloodGroup: "O+", units: 1, status: "Completed" },
+    { date: "2025-06-10", hospital: "Max Hospital", bloodGroup: "O+", units: 1, status: "Completed" }
+  ];
+
+  const upcomingCamps = [
+    { id: 1, name: "Red Cross Blood Drive", date: "2026-03-15", location: "Mumbai Central", time: "9:00 AM - 5:00 PM" },
+    { id: 2, name: "City Hospital Camp", date: "2026-03-20", location: "Andheri West", time: "10:00 AM - 4:00 PM" }
+  ];
+
+  // helpers
+  const getDaysUntilNext = () => {
+    const next = new Date(lastDonationDate);
+    next.setDate(next.getDate() + 90);
+    const diff = next.getTime() - new Date().getTime();
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    return days > 0 ? `${days} day${days === 1 ? "" : "s"}` : "Today";
+  };
 
   if (!isAuthenticated || !user) {
     navigate("/login");
@@ -70,226 +112,348 @@ const Dashboard = () => {
     }
   };
 
-  const calculateBMI = (h: number, w: number) => {
-    if (h > 0 && w > 0) {
-      const heightMeters = h / 100;
-      const bmiValue = w / (heightMeters * heightMeters);
-      setBmi(Math.round(bmiValue * 10) / 10);
-    }
-  };
-
-  const handleHeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const h = parseFloat(e.target.value) || 0;
-    setHeight(e.target.value);
-    if (weight) calculateBMI(h, parseFloat(weight));
-  };
-
-  const handleWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const w = parseFloat(e.target.value) || 0;
-    setWeight(e.target.value);
-    if (height) calculateBMI(parseFloat(height), w);
-  };
-
-  const checkEligibility = () => {
-    setEligibilityChecked(true);
-
-    const ageNum = parseFloat(age);
+  const calculateBMI = () => {
+    const heightNum = parseFloat(height);
     const weightNum = parseFloat(weight);
-    const hemoglobinNum = parseFloat(hemoglobin);
 
-    if (!height || !weight || !age || !hemoglobin || !lastDonationDate || !medicalConditions || !onMedication) {
-      toast.error("Please fill all fields");
+    if (!heightNum || !weightNum) {
+      toast.error("Please enter both height and weight");
       return;
     }
 
-    const ageValid = ageNum >= 18 && ageNum <= 60;
-    const weightValid = weightNum >= 50;
-    const bmiValid = bmi !== null && bmi >= 18.5;
-    const hemoglobinValid = hemoglobinNum >= 12.5;
-
-    const lastDonation = new Date(lastDonationDate);
-    const today = new Date();
-    const days = Math.floor((today.getTime() - lastDonation.getTime()) / (1000 * 60 * 60 * 24));
-
-    const donationGapValid = days >= 90;
-
-    const eligible =
-      ageValid &&
-      weightValid &&
-      bmiValid &&
-      hemoglobinValid &&
-      donationGapValid &&
-      medicalConditions === "no" &&
-      onMedication === "no";
-
-    setEligibilityStatus(eligible);
-
-    if (eligible) {
-      toast.success("You are eligible for blood donation.");
-    } else {
-      toast.error("You are currently not eligible for donation.");
+    if (heightNum < 50 || heightNum > 300) {
+      toast.error("Please enter a valid height (50-300 cm)");
+      return;
     }
+
+    if (weightNum < 20 || weightNum > 300) {
+      toast.error("Please enter a valid weight (20-300 kg)");
+      return;
+    }
+
+    setIsCalculating(true);
+
+    // Simulate calculation delay for better UX
+    setTimeout(() => {
+      const heightMeters = heightNum / 100;
+      const bmiValue = weightNum / (heightMeters * heightMeters);
+      const roundedBMI = Math.round(bmiValue * 10) / 10;
+
+      let category: string;
+      let eligible: boolean;
+      let color: string;
+
+      if (roundedBMI < 18.5) {
+        category = "Underweight";
+        eligible = false;
+        color = "text-orange-600 bg-orange-50 border-orange-200";
+      } else if (roundedBMI >= 18.5 && roundedBMI < 25) {
+        category = "Normal";
+        eligible = true;
+        color = "text-green-600 bg-green-50 border-green-200";
+      } else if (roundedBMI >= 25 && roundedBMI < 30) {
+        category = "Overweight";
+        eligible = true;
+        color = "text-yellow-600 bg-yellow-50 border-yellow-200";
+      } else {
+        category = "Obese";
+        eligible = false;
+        color = "text-red-600 bg-red-50 border-red-200";
+      }
+
+      const result: BMIResult = {
+        value: roundedBMI,
+        category,
+        eligible,
+        color
+      };
+
+      setBmiResult(result);
+      setIsCalculating(false);
+
+      toast.success("BMI calculated successfully!");
+    }, 500);
   };
 
-  const totalDonations = 5;
-  const livesSaved = totalDonations * 3;
-  const nextEligibleDate = new Date(Date.now() + 90 * 86400000).toLocaleDateString();
+  const getEligibilityText = (eligible: boolean) => {
+    return eligible ? "Eligible for donation" : "Not eligible for donation";
+  };
 
-  const upcomingRequests = [
-    { id: 1, hospital: "City Hospital", bloodGroup: "O+", urgency: "High", requiredBefore: "2026-03-10" },
-    { id: 2, hospital: "Apollo Hospital", bloodGroup: "B+", urgency: "Normal", requiredBefore: "2026-03-12" }
-  ];
-
-  const donationHistory = [
-    { date: "2025-12-15", hospital: "City Hospital", bloodGroup: "O+", status: "Completed" },
-    { date: "2025-09-20", hospital: "Apollo Hospital", bloodGroup: "O+", status: "Completed" }
-  ];
+  const getNextEligibleDate = () => {
+    const lastDonation = new Date(lastDonationDate);
+    const nextDate = new Date(lastDonation.getTime() + 90 * 24 * 60 * 60 * 1000);
+    return nextDate.toLocaleDateString();
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b bg-card">
-        <div className="container mx-auto max-w-5xl px-4 py-6 flex justify-between">
-          <h1 className="text-2xl font-bold">Donor Dashboard</h1>
-          <Button variant="outline" size="sm" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-1" /> Logout
-          </Button>
+    <div className="min-h-screen bg-gray-50 animate-fade-in">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="container mx-auto max-w-6xl px-4 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-3">
+              <div className="bg-red-100 p-2 rounded-full">
+                <Heart className="h-6 w-6 text-red-600" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Blood Connect Pro</h1>
+                <p className="text-sm text-gray-600">Donor Dashboard</p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" /> Logout
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="container mx-auto max-w-5xl px-4 py-8 space-y-8">
-
-        <Tabs defaultValue="overview">
-
-          <TabsList className="grid grid-cols-4 max-w-md">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="health">Health</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="requests">Requests</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview">
-
-            <div className="grid sm:grid-cols-3 gap-4 mt-6">
-
-              <Card>
-                <CardContent className="pt-6">
-                  <p>Total Donations</p>
-                  <p className="text-2xl font-bold">{totalDonations}</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-6">
-                  <p>Lives Saved</p>
-                  <p className="text-2xl font-bold">{livesSaved}</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-6">
-                  <p>Next Eligible</p>
-                  <p>{nextEligibleDate}</p>
-                </CardContent>
-              </Card>
-
+      <div className="container mx-auto max-w-6xl px-4 py-8">
+        {/* Welcome Section */}
+        <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-xl p-6 text-white mb-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="bg-white bg-opacity-20 p-3 rounded-full">
+                <User className="h-8 w-8" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">Welcome back, {user.fullName}!</h2>
+                <p className="text-red-100">Blood Group: {user.bloodGroup} • {user.city}, {user.state}</p>
+                <div className="flex items-center space-x-4 mt-2">
+                  <Badge variant="secondary" className="bg-white bg-opacity-20 text-white border-white border-opacity-30">
+                    <Award className="h-3 w-3 mr-1" />
+                    {totalDonations} Donations
+                  </Badge>
+                  <Badge variant="secondary" className="bg-white bg-opacity-20 text-white border-white border-opacity-30">
+                    <Heart className="h-3 w-3 mr-1" />
+                    {livesSaved} Lives Saved
+                  </Badge>
+                </div>
+              </div>
             </div>
+            <div className="text-right">
+              <div className="flex items-center space-x-2 mb-2">
+                <Label htmlFor="availability" className="text-white">Available for donation</Label>
+                <Switch
+                  id="availability"
+                  checked={available}
+                  onCheckedChange={handleToggle}
+                  disabled={toggling}
+                />
+              </div>
+              <p className="text-sm text-red-100">
+                Status: <span className={available ? "text-green-300" : "text-yellow-300"}>
+                  {available ? "Available" : "Unavailable"}
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
 
-          </TabsContent>
+        {/* Dashboard Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* BMI Health Check Card */}
+          <Card className="md:col-span-2 lg:col-span-1 hover:shadow-lg transition-shadow duration-300">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Activity className="h-5 w-5 text-red-600" />
+                <span>Health Eligibility Check</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="height">Height (cm)</Label>
+                  <Input
+                    id="height"
+                    type="number"
+                    placeholder="170"
+                    value={height}
+                    onChange={(e) => setHeight(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="weight">Weight (kg)</Label>
+                  <Input
+                    id="weight"
+                    type="number"
+                    placeholder="70"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
 
-          <TabsContent value="health">
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Health Eligibility Check</CardTitle>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-
-                <Input placeholder="Height (cm)" value={height} onChange={handleHeightChange}/>
-                <Input placeholder="Weight (kg)" value={weight} onChange={handleWeightChange}/>
-                <Input placeholder="Age" value={age} onChange={(e)=>setAge(e.target.value)}/>
-                <Input placeholder="Hemoglobin (g/dL)" value={hemoglobin} onChange={(e)=>setHemoglobin(e.target.value)}/>
-                <Input type="date" value={lastDonationDate} onChange={(e)=>setLastDonationDate(e.target.value)}/>
-
-                {bmi && (
-                  <p className="text-sm">BMI: <b>{bmi}</b></p>
+              <Button
+                onClick={calculateBMI}
+                className="w-full"
+                disabled={isCalculating}
+              >
+                {isCalculating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Calculating...
+                  </>
+                ) : (
+                  "Check Eligibility"
                 )}
+              </Button>
 
-                <Button className="w-full" onClick={checkEligibility}>
-                  Check Eligibility
-                </Button>
-
-                {eligibilityChecked && eligibilityStatus !== null && (
-                  <div className="p-3 border rounded">
-                    {eligibilityStatus ? (
-                      <p className="text-green-600 flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4"/> Eligible for donation
-                      </p>
+              {bmiResult && (
+                <Alert className={`${bmiResult.color} border`}>
+                  <div className="flex items-center space-x-2">
+                    {bmiResult.eligible ? (
+                      <CheckCircle className="h-5 w-5" />
                     ) : (
-                      <p className="text-red-600 flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4"/> Not eligible currently
-                      </p>
+                      <AlertCircle className="h-5 w-5" />
                     )}
-                  </div>
-                )}
-
-              </CardContent>
-            </Card>
-
-          </TabsContent>
-
-          <TabsContent value="history">
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Donation History</CardTitle>
-              </CardHeader>
-
-              <CardContent>
-
-                {donationHistory.map((d,i)=>(
-                  <div key={i} className="flex justify-between border-b py-3">
                     <div>
-                      <p>{d.hospital}</p>
-                      <p className="text-sm text-muted-foreground">{d.date}</p>
+                      <p className="font-semibold">BMI: {bmiResult.value}</p>
+                      <p className="text-sm">{bmiResult.category}</p>
+                      <p className="text-sm">{getEligibilityText(bmiResult.eligible)}</p>
                     </div>
-                    <Badge>{d.status}</Badge>
                   </div>
-                ))}
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
 
-              </CardContent>
-            </Card>
-
-          </TabsContent>
-
-          <TabsContent value="requests">
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Blood Requests</CardTitle>
-              </CardHeader>
-
-              <CardContent className="space-y-3">
-
-                {upcomingRequests.map(req=>(
-                  <div key={req.id} className="border rounded p-4">
-                    <p className="font-semibold">{req.hospital}</p>
-                    <p className="text-sm">Blood Group: {req.bloodGroup}</p>
-                    <p className="text-xs">Required by {req.requiredBefore}</p>
-
-                    <Button className="mt-3 w-full" disabled={!eligibilityStatus}>
-                      Respond
+          {/* Blood Requests Card */}
+          <Card className="hover:shadow-lg transition-shadow duration-300">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Droplets className="h-5 w-5 text-red-600" />
+                <span>Blood Requests Near You</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {upcomingRequests.slice(0, 2).map((req) => (
+                  <div key={req.id} className="border rounded-lg p-3 hover:bg-gray-50 transition-colors">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-semibold text-sm">{req.hospital}</h4>
+                      <Badge variant={req.urgency === "High" ? "destructive" : "secondary"} className="text-xs">
+                        {req.urgency}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1 text-sm text-gray-600">
+                      <p className="flex items-center">
+                        <Droplets className="h-3 w-3 mr-1" />
+                        {req.patientBloodGroup}
+                      </p>
+                      <p className="flex items-center">
+                        <MapPinIcon className="h-3 w-3 mr-1" />
+                        {req.location}
+                      </p>
+                    </div>
+                    <Button size="sm" className="w-full mt-3" disabled={!bmiResult?.eligible}>
+                      Respond to Request
                     </Button>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
 
-              </CardContent>
-            </Card>
+          {/* Donation History Card */}
+          <Card className="hover:shadow-lg transition-shadow duration-300">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <History className="h-5 w-5 text-red-600" />
+                <span>Donation History</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {donationHistory.map((donation, index) => (
+                  <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{donation.hospital}</p>
+                      <p className="text-xs text-gray-500 flex items-center">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {donation.date}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <Badge variant="outline" className="text-xs">
+                        {donation.bloodGroup}
+                      </Badge>
+                      <p className="text-xs text-green-600 mt-1">{donation.status}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Button variant="outline" size="sm" className="w-full mt-4">
+                View All History
+              </Button>
+            </CardContent>
+          </Card>
 
-          </TabsContent>
+          {/* Upcoming Camps Card */}
+          <Card className="md:col-span-2 lg:col-span-1 hover:shadow-lg transition-shadow duration-300">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <MapPin className="h-5 w-5 text-red-600" />
+                <span>Upcoming Blood Donation Camps</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {upcomingCamps.map((camp) => (
+                  <div key={camp.id} className="border rounded-lg p-3 hover:bg-gray-50 transition-colors">
+                    <h4 className="font-semibold text-sm mb-2">{camp.name}</h4>
+                    <div className="space-y-1 text-sm text-gray-600">
+                      <p className="flex items-center">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {camp.date}
+                      </p>
+                      <p className="flex items-center">
+                        <MapPinIcon className="h-3 w-3 mr-1" />
+                        {camp.location}
+                      </p>
+                      <p className="flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {camp.time}
+                      </p>
+                    </div>
+                    <Link to="/blood-camps">
+                      <Button size="sm" className="w-full mt-3" variant="outline">
+                        Register for Camp
+                      </Button>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-        </Tabs>
-
+          {/* Quick Stats Card */}
+          <Card className="hover:shadow-lg transition-shadow duration-300">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Award className="h-5 w-5 text-red-600" />
+                <span>Your Impact</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">{totalDonations}</div>
+                  <div className="text-sm text-gray-600">Total Donations</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{livesSaved}</div>
+                  <div className="text-sm text-gray-600">Lives Saved</div>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t">
+                <div className="text-sm text-gray-600 mb-1">Next Eligible Date</div>
+                <div className="font-medium">{getNextEligibleDate()}</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

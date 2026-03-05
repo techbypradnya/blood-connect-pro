@@ -35,7 +35,7 @@ const Search = () => {
   };
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-10">
+    <div className="container mx-auto max-w-3xl px-4 py-10 animate-fade-in">
       <h1 className="mb-2 font-display text-2xl font-bold">Find a Donor</h1>
       <p className="mb-6 text-muted-foreground">Search for available blood donors in your area</p>
 
@@ -68,9 +68,10 @@ const Search = () => {
       )}
 
       {loading && (
-        <div className="py-10 text-center text-muted-foreground">
-          <Loader2 className="mx-auto h-6 w-6 animate-spin" />
-          <p className="mt-2">Searching donors...</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <div key={idx} className="h-28 rounded-lg bg-muted animate-pulse" />
+          ))}
         </div>
       )}
 

@@ -74,7 +74,7 @@ const EmergencyRequest = () => {
   );
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-10">
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-10 animate-fade-in">
       <Card className="w-full max-w-lg card-shadow">
         <CardHeader className="text-center">
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-accent">

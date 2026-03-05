@@ -40,3 +40,24 @@
 .read-the-docs {
   color: #888;
 }
+
+/* ripple effect for buttons */
+button {
+  position: relative;
+  overflow: hidden;
+}
+
+button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.3s;
+  border-radius: inherit;
+}
+
+button:active::after {
+  opacity: 0.15;
+  transition: opacity 0s;
+}
