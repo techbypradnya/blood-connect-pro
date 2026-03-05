@@ -7,44 +7,51 @@ A complete email verification system has been implemented for the Blood Connect 
 ## Features Implemented
 
 ### 1. **User Model Updates**
-   - Added `isVerified` field (default: false)
-   - Added `verificationToken` field (stores hashed token)
-   - Added `verificationTokenExpire` field (24-hour expiration)
-   - Added `getEmailVerificationToken()` method to generate secure tokens
+
+- Added `isVerified` field (default: false)
+- Added `verificationToken` field (stores hashed token)
+- Added `verificationTokenExpire` field (24-hour expiration)
+- Added `getEmailVerificationToken()` method to generate secure tokens
 
 ### 2. **Email Service** (`src/services/emailService.js`)
-   - Reusable nodemailer transporter using Mailtrap SMTP
-   - `sendVerificationEmail()` - Sends beautiful HTML verification emails
-   - `sendPasswordResetEmail()` - Updated to use Mailtrap
-   - `sendEmail()` - Generic email function for custom emails
-   - All emails are professionally formatted with HTML templates
+
+- Reusable nodemailer transporter using Mailtrap SMTP
+- `sendVerificationEmail()` - Sends beautiful HTML verification emails
+- `sendPasswordResetEmail()` - Updated to use Mailtrap
+- `sendEmail()` - Generic email function for custom emails
+- All emails are professionally formatted with HTML templates
 
 ### 3. **Authentication Controller Updates**
 
-   **Register Endpoint** (`POST /api/auth/register`)
-   - Generates verification token during registration
-   - Sends verification email to user
-   - User receives email with verification link
-   - Returns message asking user to check email
+**Register Endpoint** (`POST /api/auth/register`)
 
-   **Verify Email Endpoint** (`GET /api/auth/verify-email?token=<token>`)
-   - Validates the verification token
-   - Checks token expiration (24 hours)
-   - Sets `isVerified = true` when successful
-   - Removes verification token
-   - User can now proceed to login
+- Generates verification token during registration
+- Sends verification email to user
+- User receives email with verification link
+- Returns message asking user to check email
 
-   **Login Endpoint** (`POST /api/auth/login`)
-   - Added email verification check
-   - Returns 403 error if email not verified
-   - Provides user-friendly message directing to email verification
+**Verify Email Endpoint** (`GET /api/auth/verify-email?token=<token>`)
 
-   **Forgot Password** (`POST /api/auth/forgot-password`)
-   - Updated to use new emailService
-   - Sends password reset email via Mailtrap
+- Validates the verification token
+- Checks token expiration (24 hours)
+- Sets `isVerified = true` when successful
+- Removes verification token
+- User can now proceed to login
+
+**Login Endpoint** (`POST /api/auth/login`)
+
+- Added email verification check
+- Returns 403 error if email not verified
+- Provides user-friendly message directing to email verification
+
+**Forgot Password** (`POST /api/auth/forgot-password`)
+
+- Updated to use new emailService
+- Sends password reset email via Mailtrap
 
 ### 4. **Routes**
-   - `GET /api/auth/verify-email?token=<token>` - Verify email from link click
+
+- `GET /api/auth/verify-email?token=<token>` - Verify email from link click
 
 ## Database Schema
 
@@ -60,12 +67,14 @@ A complete email verification system has been implemented for the Blood Connect 
 ## Installation & Setup
 
 ### 1. Install Dependencies
+
 ```bash
 cd backend
 npm install nodemailer
 ```
 
 ### 2. Create .env File
+
 Copy `.env.example` to `.env` and configure Mailtrap credentials:
 
 ```env
@@ -85,6 +94,7 @@ FRONTEND_URL=http://localhost:5173
 ```
 
 ### 3. Get Mailtrap Credentials
+
 1. Visit https://mailtrap.io
 2. Sign up for a free account
 3. Create a new inbox (or use default)
@@ -95,6 +105,7 @@ FRONTEND_URL=http://localhost:5173
 ## API Endpoints
 
 ### Register User
+
 ```http
 POST /api/auth/register
 Content-Type: application/json
@@ -112,6 +123,7 @@ Content-Type: application/json
 ```
 
 **Response (Success)**
+
 ```json
 {
   "success": true,
@@ -126,14 +138,17 @@ Content-Type: application/json
 ```
 
 ### Verify Email
+
 User receives email with link: `http://localhost:5000/api/auth/verify-email?token=<token>`
 
 Or manually:
+
 ```http
 GET /api/auth/verify-email?token=eyJhbGciOi...
 ```
 
 **Response (Success)**
+
 ```json
 {
   "success": true,
@@ -142,6 +157,7 @@ GET /api/auth/verify-email?token=eyJhbGciOi...
 ```
 
 **Response (Invalid/Expired Token)**
+
 ```json
 {
   "success": false,
@@ -150,6 +166,7 @@ GET /api/auth/verify-email?token=eyJhbGciOi...
 ```
 
 ### Login User
+
 ```http
 POST /api/auth/login
 Content-Type: application/json
@@ -161,6 +178,7 @@ Content-Type: application/json
 ```
 
 **Response (Email Not Verified)**
+
 ```json
 {
   "success": false,
@@ -169,6 +187,7 @@ Content-Type: application/json
 ```
 
 **Response (Success - After Email Verification)**
+
 ```json
 {
   "success": true,
@@ -184,16 +203,19 @@ Content-Type: application/json
 ## Error Handling
 
 ### Registration Errors
+
 - **Email Already Registered** - 400: "Email already registered"
 - **Validation Errors** - 422: Field-specific validation errors
 - **Email Send Failed** - 500: "Failed to send verification email. Please try again."
 
 ### Verification Errors
+
 - **Missing Token** - 400: "Verification token is required"
 - **Invalid Token** - 400: "Invalid or expired verification token. Please register again."
 - **Expired Token** - 400: "Invalid or expired verification token. Please register again."
 
 ### Login Errors
+
 - **Email Not Verified** - 403: "Please verify your email before logging in..."
 - **Invalid Credentials** - 401: "Invalid credentials"
 
@@ -293,18 +315,21 @@ backend/
 ## Troubleshooting
 
 ### Emails Not Sending
+
 - [ ] Check Mailtrap credentials in .env
 - [ ] Verify SMTP_HOST and SMTP_PORT values
 - [ ] Check backend logs for error messages
 - [ ] Try sending test email directly from Mailtrap dashboard
 
 ### Verification Link Not Working
+
 - [ ] Ensure BACKEND_URL is correctly set in .env
 - [ ] Token should not be expired (24 hours)
 - [ ] Check database for verificationToken field
 - [ ] Verify token is being hashed correctly
 
 ### Users Can't Log In
+
 - [ ] Check if isVerified field is true in database
 - [ ] Verify email was actually verified using /verify-email endpoint
 - [ ] Check password is correct (case-sensitive)
@@ -313,6 +338,7 @@ backend/
 ## Code Quality
 
 All code follows:
+
 - ✅ Clean MVC architecture
 - ✅ Error handling with try-catch
 - ✅ Security best practices
@@ -333,6 +359,7 @@ All code follows:
 ## Support
 
 For issues or questions:
+
 1. Check the troubleshooting section
 2. Review Mailtrap documentation: https://mailtrap.io/
 3. Check nodemailer docs: https://nodemailer.com/
