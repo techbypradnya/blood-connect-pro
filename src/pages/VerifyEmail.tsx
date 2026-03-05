@@ -1,34 +1,32 @@
 import { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 type Status = "loading" | "success" | "error";
 
 const VerifyEmail = () => {
-  const [searchParams] = useSearchParams();
+  const { token } = useParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState<Status>("loading");
   const [message, setMessage] = useState("Verifying your email…");
 
   useEffect(() => {
-    const token = searchParams.get("token");
-
     if (!token) {
       setStatus("error");
-      setMessage("Verification token is missing from the URL.");
+      setMessage("Invalid verification link. No token provided.");
       return;
     }
 
     const verify = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/auth/verify-email`, {
-          method: "POST",
+        const res = await fetch(`${API_BASE_URL}/auth/verify-email/${token}`, {
+          method: "GET",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
         });
 
         const data = await res.json();
@@ -46,40 +44,54 @@ const VerifyEmail = () => {
     };
 
     verify();
-  }, [searchParams]);
+  }, [token]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <Card className="w-full max-w-md">
-        <CardContent className="flex flex-col items-center gap-4 pt-8 pb-8 text-center">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">
+            Email Verification
+          </CardTitle>
+          <CardDescription>
+            Verifying your email address...
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           {status === "loading" && (
-            <>
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              <p className="text-muted-foreground text-lg">{message}</p>
-            </>
+            <div className="flex flex-col items-center space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              <p className="text-center text-gray-600">
+                Please wait while we verify your email address...
+              </p>
+            </div>
           )}
 
           {status === "success" && (
-            <>
-              <CheckCircle className="h-14 w-14 text-green-500" />
-              <h2 className="text-xl font-semibold text-foreground">Verified!</h2>
-              <p className="text-muted-foreground">{message}</p>
-              <Button className="mt-2" onClick={() => navigate("/login")}>
-                Go to Login
-              </Button>
-            </>
+            <Alert className="border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                {message}
+              </AlertDescription>
+            </Alert>
           )}
 
           {status === "error" && (
-            <>
-              <XCircle className="h-14 w-14 text-destructive" />
-              <h2 className="text-xl font-semibold text-foreground">Verification Failed</h2>
-              <p className="text-muted-foreground">{message}</p>
-              <Button variant="outline" className="mt-2" onClick={() => navigate("/login")}>
-                Back to Login
-              </Button>
-            </>
+            <Alert className="border-red-200 bg-red-50">
+              <XCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                {message}
+              </AlertDescription>
+            </Alert>
           )}
+
+          <Button
+            onClick={() => navigate("/login")}
+            className="w-full"
+            disabled={status === "loading"}
+          >
+            {status === "success" ? "Go to Login" : "Back to Login"}
+          </Button>
         </CardContent>
       </Card>
     </div>

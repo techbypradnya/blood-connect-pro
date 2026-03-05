@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
-const sendEmail = require("../utils/sendEmail");
+const { sendVerificationEmail, sendPasswordResetEmail } = require("../services/emailService");
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -26,24 +26,51 @@ exports.register = async (req, res, next) => {
       state,
     });
 
-    const token = generateToken(user._id);
+    // Generate email verification token
+    const verificationToken = user.getEmailVerificationToken();
+    await user.save({ validateBeforeSave: false });
 
-    res.status(201).json({
-      success: true,
-      message: "Registration successful.",
-      data: {
-        _id: user._id,
+    // Send verification email
+    try {
+      console.log(`\n📧 Attempting to send verification email to: ${user.email}`);
+      
+      await sendVerificationEmail({
+        to: user.email,
         fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        bloodGroup: user.bloodGroup,
-        city: user.city,
-        state: user.state,
-        available: user.available,
-        token,
-      },
-    });
+        verificationToken,
+      });
+
+      console.log(`✅ Verification email sent successfully to: ${user.email}\n`);
+
+      res.status(201).json({
+        success: true,
+        message: "Registration successful. Please check your email to verify your account.",
+        data: {
+          _id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+          bloodGroup: user.bloodGroup,
+          city: user.city,
+          state: user.state,
+          available: user.available,
+          isVerified: user.isVerified,
+        },
+      });
+    } catch (emailError) {
+      console.error(`❌ Email sending failed for ${user.email}:`, emailError);
+      
+      // If email fails, delete the user
+      await User.findByIdAndDelete(user._id);
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send verification email. Check backend logs for details. Please try again later.",
+        error: process.env.NODE_ENV === "development" ? emailError.message : undefined,
+      });
+    }
   } catch (error) {
+    console.error("Register error:", error);
     next(error);
   }
 };
@@ -58,6 +85,14 @@ exports.login = async (req, res, next) => {
     const user = await User.findOne({ email }).select("+password");
     if (!user) {
       return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
+    // Check if email is verified
+    if (!user.isVerified) {
+      return res.status(403).json({
+        success: false,
+        message: "Please verify your email before logging in. Check your inbox for the verification link.",
+      });
     }
 
     const isMatch = await user.matchPassword(password);
@@ -99,20 +134,11 @@ exports.forgotPassword = async (req, res, next) => {
     const resetToken = user.getResetPasswordToken();
     await user.save({ validateBeforeSave: false });
 
-    const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password/${resetToken}`;
-
     try {
-      await sendEmail({
+      await sendPasswordResetEmail({
         to: user.email,
-        subject: "Blood Connect Pro — Password Reset",
-        html: `
-          <h2>Password Reset Request</h2>
-          <p>Hi ${user.fullName},</p>
-          <p>You requested a password reset. Click the link below to set a new password:</p>
-          <a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:#dc2626;color:#fff;text-decoration:none;border-radius:6px;">Reset Password</a>
-          <p>This link expires in 10 minutes.</p>
-          <p>If you didn't request this, please ignore this email.</p>
-        `,
+        fullName: user.fullName,
+        resetToken,
       });
 
       res.json({ success: true, message: "Password reset email sent" });
@@ -209,6 +235,50 @@ exports.verifyOtp = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     res.json({ success: true, message: "Phone number verified successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+// @desc    Verify email address
+// @route   GET /api/auth/verify-email/:token
+// @access  Public
+exports.verifyEmail = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      return res.status(400).json({ success: false, message: "Verification token is required" });
+    }
+
+    // Hash the token to match the one stored in the database
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    // Find user with matching verification token and check if it hasn't expired
+    const user = await User.findOne({
+      verificationToken: hashedToken,
+      verificationTokenExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired verification token. Please register again.",
+      });
+    }
+
+    // Mark email as verified
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpire = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    res.json({
+      success: true,
+      message: "Email verified successfully! You can now log in.",
+    });
   } catch (error) {
     next(error);
   }

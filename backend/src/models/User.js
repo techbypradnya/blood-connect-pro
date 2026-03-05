@@ -70,6 +70,14 @@ const userSchema = new mongoose.Schema(
     resetPasswordToken: String,
     resetPasswordExpire: Date,
 
+    // Email verification fields
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verificationToken: String,
+    verificationTokenExpire: Date,
+
     // Phone verification fields
     phoneVerified: {
       type: Boolean,
@@ -104,6 +112,20 @@ userSchema.methods.getResetPasswordToken = function () {
     .digest("hex");
 
   this.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+  return token;
+};
+
+// Generate email verification token
+userSchema.methods.getEmailVerificationToken = function () {
+  const token = crypto.randomBytes(32).toString("hex");
+
+  this.verificationToken = crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex");
+
+  this.verificationTokenExpire = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
 
   return token;
 };

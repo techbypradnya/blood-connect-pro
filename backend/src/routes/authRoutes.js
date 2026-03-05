@@ -11,6 +11,7 @@ const {
   resetPassword,
   sendOtp,
   verifyOtp,
+  verifyEmail,
 } = require("../controllers/authController");
 
 // Register
@@ -61,6 +62,9 @@ router.put(
   validate,
   resetPassword
 );
+
+// Verify email
+router.get("/verify-email/:token", verifyEmail);
 
 // Phone OTP (protected — user must be logged in)
 router.post("/send-otp", protect, sendOtp);
