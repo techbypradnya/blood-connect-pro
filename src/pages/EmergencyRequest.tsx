@@ -129,6 +129,37 @@ const EmergencyRequest = () => {
           <CardDescription>Submit an urgent blood requirement</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Eligibility Banner */}
+          {isAuthenticated && !eligibility.eligible && (
+            <Alert className="mb-6 border-destructive/50 bg-destructive/10">
+              <ShieldX className="h-5 w-5 text-destructive" />
+              <AlertDescription>
+                <p className="font-semibold text-destructive mb-2">
+                  ❌ You are not eligible to submit a blood request
+                </p>
+                <ul className="list-disc list-inside text-sm text-destructive/80 space-y-1">
+                  {eligibility.reasons.map((r, i) => (
+                    <li key={i}>{r}</li>
+                  ))}
+                </ul>
+                <Link to="/dashboard" className="inline-block mt-3 text-sm font-medium text-primary underline underline-offset-4 hover:text-primary/80">
+                  Update your medical profile →
+                </Link>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {isAuthenticated && eligibility.eligible && (
+            <Alert className="mb-6 border-green-300 bg-green-50 dark:bg-green-950/20">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <AlertDescription>
+                <p className="font-semibold text-green-700 dark:text-green-400">
+                  ✅ You are eligible for blood donation
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <Field label="Patient Name" name="patientName" placeholder="Patient's full name" />
 
@@ -152,8 +183,8 @@ const EmergencyRequest = () => {
             <Field label="City" name="city" placeholder="Mumbai" />
             <Field label="Contact Number" name="contact" type="tel" placeholder="+91 98765 43210" />
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Submitting..." : "Submit Emergency Request"}
+            <Button type="submit" className="w-full" disabled={loading || !eligibility.eligible}>
+              {loading ? "Submitting..." : !eligibility.eligible ? "Ineligible – Cannot Submit" : "Submit Emergency Request"}
             </Button>
           </form>
         </CardContent>
