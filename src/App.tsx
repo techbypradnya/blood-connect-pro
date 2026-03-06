@@ -16,6 +16,8 @@ import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import VerifyEmail from "./pages/VerifyEmail";
 import BloodCamps from "./pages/BloodCamps";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +34,8 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
             <Route path="/verify-email/:token" element={<VerifyEmail />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/search" element={<Search />} />
