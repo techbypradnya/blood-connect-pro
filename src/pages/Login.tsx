@@ -57,6 +57,11 @@ const Login = () => {
               <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className={errors.password ? "border-destructive" : ""} />
               {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
             </div>
+            <div className="flex justify-end">
+              <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-primary hover:underline">
+                Forgot password?
+              </Link>
+            </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Logging in..." : "Login"}
             </Button>

@@ -50,6 +50,12 @@ export const authApi = {
 
   resendVerification: (email: string) =>
     apiRequest<{ success: boolean; message: string }>("/auth/resend-verification", { method: "POST", body: { email } }),
+
+  forgotPassword: (email: string) =>
+    apiRequest<{ success: boolean; message: string }>("/auth/forgot-password", { method: "POST", body: { email } }),
+
+  resetPassword: (token: string, password: string) =>
+    apiRequest<{ success: boolean; message: string }>(`/auth/reset-password/${token}`, { method: "PUT", body: { password } }),
 };
 
 // ---- Donors ----
