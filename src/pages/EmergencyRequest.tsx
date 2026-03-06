@@ -1,15 +1,16 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { BLOOD_GROUPS } from "@/data/mockData";
 import { requestApi } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { AlertTriangle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { AlertTriangle, ShieldX, CheckCircle } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 
 const EmergencyRequest = () => {
   const [loading, setLoading] = useState(false);
