@@ -18,8 +18,52 @@ const EmergencyRequest = () => {
     patientName: "", bloodGroup: "", hospital: "", city: "", contact: "", unitsRequired: "1",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { token, isAuthenticated } = useAuth();
+  const { user, token, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Client-side eligibility check mirroring backend rules
+  const eligibility = useMemo(() => {
+    if (!user) return { eligible: false, reasons: ["You must be logged in."] };
+    const reasons: string[] = [];
+
+    if (user.age != null) {
+      if (user.age < 18 || user.age > 60) reasons.push("Age must be between 18 and 60 years");
+    } else {
+      reasons.push("Age is not set in your profile");
+    }
+
+    if (user.weight != null) {
+      if (user.weight < 50) reasons.push("Minimum weight must be 50 kg");
+    } else {
+      reasons.push("Weight is not set in your profile");
+    }
+
+    if (user.weight != null && user.height != null && user.height > 0) {
+      const heightM = user.height / 100;
+      const bmi = user.weight / (heightM * heightM);
+      if (bmi < 18.5) reasons.push("BMI is below 18.5 – underweight");
+      else if (bmi > 35) reasons.push("BMI is above safe range");
+    } else if (user.height == null) {
+      reasons.push("Height is not set in your profile");
+    }
+
+    if (user.hemoglobin != null) {
+      if (user.hemoglobin < 12.5) reasons.push("Hemoglobin must be above 12.5 g/dL");
+    } else {
+      reasons.push("Hemoglobin level is not set in your profile");
+    }
+
+    if (user.lastDonationDate) {
+      const diff = (Date.now() - new Date(user.lastDonationDate).getTime()) / (1000 * 60 * 60 * 24);
+      if (diff < 90) reasons.push("Minimum 3 months gap since last donation required");
+    }
+
+    if (user.hasMedicalConditions) reasons.push("Existing medical conditions reported");
+    if (user.recentSurgery) reasons.push("Recent surgery reported");
+    if (user.onMedication) reasons.push("Currently on medication");
+
+    return { eligible: reasons.length === 0, reasons };
+  }, [user]);
 
   const validate = () => {
     const e: Record<string, string> = {};
