@@ -127,22 +127,31 @@ exports.login = async (req, res, next) => {
 exports.forgotPassword = async (req, res, next) => {
   try {
     const user = await User.findOne({ email: req.body.email });
+
+    // Always return success to prevent email enumeration attacks
     if (!user) {
-      return res.status(404).json({ success: false, message: "No account with that email" });
+      console.log(`❌ Password reset requested for non-existent email: ${req.body.email}`);
+      return res.json({ success: true, message: "If an account with that email exists, a password reset link has been sent." });
     }
 
     const resetToken = user.getResetPasswordToken();
     await user.save({ validateBeforeSave: false });
 
     try {
+      console.log(`\n📧 Attempting to send password reset email to: ${user.email}`);
+      
       await sendPasswordResetEmail({
         to: user.email,
         fullName: user.fullName,
         resetToken,
       });
 
-      res.json({ success: true, message: "Password reset email sent" });
+      console.log(`✅ Password reset email sent successfully to: ${user.email}\n`);
+
+      res.json({ success: true, message: "If an account with that email exists, a password reset link has been sent." });
     } catch (emailErr) {
+      console.error(`❌ Failed to send password reset email to ${user.email}:`, emailErr.message);
+      
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
       await user.save({ validateBeforeSave: false });
@@ -150,6 +159,7 @@ exports.forgotPassword = async (req, res, next) => {
       return res.status(500).json({ success: false, message: "Email could not be sent" });
     }
   } catch (error) {
+    console.error("❌ Error in forgotPassword:", error.message);
     next(error);
   }
 };
@@ -170,6 +180,7 @@ exports.resetPassword = async (req, res, next) => {
     });
 
     if (!user) {
+      console.log(`❌ Invalid or expired reset token attempted: ${req.params.token.substring(0, 10)}...`);
       return res.status(400).json({ success: false, message: "Invalid or expired reset token" });
     }
 
@@ -178,8 +189,11 @@ exports.resetPassword = async (req, res, next) => {
     user.resetPasswordExpire = undefined;
     await user.save();
 
+    console.log(`✅ Password reset successful for user: ${user.email}`);
+
     res.json({ success: true, message: "Password reset successful" });
   } catch (error) {
+    console.error("❌ Error in resetPassword:", error.message);
     next(error);
   }
 };

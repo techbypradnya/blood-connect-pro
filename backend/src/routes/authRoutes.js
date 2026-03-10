@@ -4,6 +4,8 @@ const { body } = require("express-validator");
 
 const validate = require("../middlewares/validate");
 const { protect } = require("../middlewares/auth");
+const rateLimiter = require("../middlewares/rateLimiter");
+const { forgotPasswordLimiter } = require("../middlewares/rateLimiter");
 const {
   register,
   login,
@@ -50,6 +52,7 @@ router.post(
 // Forgot password
 router.post(
   "/forgot-password",
+  forgotPasswordLimiter,
   [body("email").isEmail().withMessage("Valid email is required")],
   validate,
   forgotPassword
@@ -58,7 +61,13 @@ router.post(
 // Reset password
 router.put(
   "/reset-password/:token",
-  [body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters")],
+  [
+    body("password")
+      .isLength({ min: 8 })
+      .withMessage("Password must be at least 8 characters")
+      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/)
+      .withMessage("Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"),
+  ],
   validate,
   resetPassword
 );

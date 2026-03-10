@@ -8,23 +8,23 @@ const nodemailer = require("nodemailer");
 // Initialize transporter with SMTP credentials
 const createTransporter = () => {
   const config = {
-    host: process.env.SMTP_HOST || "sandbox.smtp.mailtrap.io",
-    port: parseInt(process.env.SMTP_PORT) || 2525,
+    host: process.env.SMTP_HOST || process.env.MAILTRAP_HOST || "sandbox.smtp.mailtrap.io",
+    port: parseInt(process.env.SMTP_PORT) || parseInt(process.env.MAILTRAP_PORT) || 2525,
     secure: process.env.SMTP_SECURE === "true" ? true : false, // true for 465, false for other ports
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user: process.env.SMTP_USER || process.env.MAILTRAP_USER,
+      pass: process.env.SMTP_PASS || process.env.MAILTRAP_PASS,
     },
   };
 
-  console.log(`📧 Initializing Mailtrap transporter:`, {
+  console.log(`📧 Initializing SMTP transporter:`, {
     host: config.host,
     port: config.port,
     user: config.auth.user ? "***" + config.auth.user.slice(-6) : "undefined",
     pass: config.auth.pass ? "***" : "undefined",
   });
 
-  return nodemailer.createTransport(config);
+  return nodemailer.createTransporter(config);
 };
 
 /**
@@ -91,7 +91,7 @@ const sendPasswordResetEmail = async ({ to, fullName, resetToken }) => {
   try {
     const transporter = createTransporter();
 
-    const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password/${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:8080"}/reset-password/${resetToken}`;
 
     const mailOptions = {
       from: `"${process.env.FROM_NAME || "Blood Connect Pro"}" <${process.env.FROM_EMAIL || process.env.SMTP_USER}>`,
@@ -112,7 +112,7 @@ const sendPasswordResetEmail = async ({ to, fullName, resetToken }) => {
               <a href="${resetUrl}" style="display: inline-block; padding: 14px 32px; background-color: #dc2626; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">Reset Password</a>
             </div>
 
-            <p style="color: #6b7280; font-size: 14px;">This link expires in 10 minutes.</p>
+            <p style="color: #6b7280; font-size: 14px;">This link expires in 15 minutes.</p>
             <p style="color: #6b7280; font-size: 13px; margin: 10px 0;">If you didn't request this, please ignore this email.</p>
           </div>
         </div>

@@ -30,9 +30,16 @@ const ForgotPassword = () => {
       setSent(true);
       toast.success("Password reset email sent!");
     } catch (err: unknown) {
+      // Even if there's an error (like email sending failure), show success for security
       const message = err instanceof Error ? err.message : "Failed to send reset email";
-      toast.error(message);
-      setError(message);
+      if (message.includes("Email could not be sent")) {
+        toast.error("Unable to send email. Please try again later.");
+        setError("Email service is temporarily unavailable. Please try again later.");
+      } else {
+        // For other errors, still show success to prevent enumeration
+        setSent(true);
+        toast.success("If an account with that email exists, a password reset link has been sent.");
+      }
     } finally {
       setLoading(false);
     }
@@ -56,7 +63,7 @@ const ForgotPassword = () => {
                 <AlertDescription>
                   <p className="font-semibold text-green-700 dark:text-green-400">Check your email</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    We've sent a password reset link to <strong>{email}</strong>. The link expires in 10 minutes.
+                    If an account with that email exists, we've sent a password reset link. The link expires in 15 minutes.
                   </p>
                 </AlertDescription>
               </Alert>

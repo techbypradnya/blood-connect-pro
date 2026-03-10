@@ -43,7 +43,18 @@ const ResetPassword = () => {
     e.preventDefault();
     const errs: Record<string, string> = {};
 
-    if (password.length < 6) errs.password = "Password must be at least 6 characters";
+    // Password validation
+    const passwordErrors: string[] = [];
+    if (password.length < 8) passwordErrors.push("at least 8 characters");
+    if (!/(?=.*[a-z])/.test(password)) passwordErrors.push("one lowercase letter");
+    if (!/(?=.*[A-Z])/.test(password)) passwordErrors.push("one uppercase letter");
+    if (!/(?=.*\d)/.test(password)) passwordErrors.push("one number");
+    if (!/(?=.*[@$!%*?&])/.test(password)) passwordErrors.push("one special character (@$!%*?&)");
+    
+    if (passwordErrors.length > 0) {
+      errs.password = `Password must contain ${passwordErrors.join(", ")}`;
+    }
+
     if (password !== confirmPassword) errs.confirmPassword = "Passwords do not match";
 
     setErrors(errs);
@@ -57,7 +68,11 @@ const ResetPassword = () => {
       setTimeout(() => navigate("/login"), 3000);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to reset password";
-      toast.error(message);
+      if (message.includes("Invalid or expired")) {
+        setErrors({ general: "This password reset link is invalid or has expired. Please request a new one." });
+      } else {
+        toast.error(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -74,6 +89,12 @@ const ResetPassword = () => {
           <CardDescription>Enter your new password below</CardDescription>
         </CardHeader>
         <CardContent>
+          {errors.general ? (
+            <Alert className="border-destructive/50 bg-destructive/10 mb-4">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              <AlertDescription>{errors.general}</AlertDescription>
+            </Alert>
+          ) : null}
           {success ? (
             <div className="space-y-4">
               <Alert className="border-green-300 bg-green-50 dark:bg-green-950/20">
