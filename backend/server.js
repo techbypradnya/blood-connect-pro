@@ -1,3 +1,7 @@
+
+app.get("/", (req, res) => {
+  res.send("Blood Connect API is running 🚀");
+});
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
