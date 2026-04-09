@@ -56,6 +56,7 @@ const userSchema = new mongoose.Schema(
     // Medical / physical details
     height: { type: Number, min: 50, max: 300 },        // cm
     weight: { type: Number, min: 20, max: 300 },        // kg
+    bmi: { type: Number, min: 0, max: 100 },
     age: { type: Number, min: 1, max: 150 },
     gender: { type: String, enum: ["male", "female", "other", ""] },
     hemoglobin: { type: Number, min: 0, max: 30 },      // g/dL

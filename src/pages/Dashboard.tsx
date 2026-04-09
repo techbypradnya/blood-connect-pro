@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { donorApi } from "@/services/api";
+import { userApi } from "@/services/api";
 
 import {
   LogOut,
@@ -45,7 +45,7 @@ interface BMIResult {
 }
 
 const Dashboard = () => {
-  const { user, token, logout, isAuthenticated } = useAuth();
+  const { user, token, logout, isAuthenticated, setUserData } = useAuth();
   const navigate = useNavigate();
 
   // Availability toggle
@@ -102,17 +102,18 @@ const Dashboard = () => {
   const handleToggle = async (value: boolean) => {
     setToggling(true);
     try {
-      await donorApi.updateAvailability(value, token!);
+      const res = await userApi.updateProfile({ available: value }, token!);
+      setUserData({ ...(user as any), ...(res.data as any) });
       setAvailable(value);
-      toast.success(value ? "You are now available for donation" : "You are now unavailable");
+      toast.success("Profile updated successfully");
     } catch {
-      toast.error("Failed to update availability");
+      toast.error("Failed to update profile");
     } finally {
       setToggling(false);
     }
   };
 
-  const calculateBMI = () => {
+  const calculateBMI = async () => {
     const heightNum = parseFloat(height);
     const weightNum = parseFloat(weight);
 
@@ -126,18 +127,16 @@ const Dashboard = () => {
       return;
     }
 
-    if (weightNum < 20 || weightNum > 300) {
-      toast.error("Please enter a valid weight (20-300 kg)");
+    if (weightNum < 50 || weightNum > 300) {
+      toast.error("Weight must be ≥ 50 kg");
       return;
     }
 
     setIsCalculating(true);
 
-    // Simulate calculation delay for better UX
-    setTimeout(() => {
-      const heightMeters = heightNum / 100;
-      const bmiValue = weightNum / (heightMeters * heightMeters);
-      const roundedBMI = Math.round(bmiValue * 10) / 10;
+    const heightMeters = heightNum / 100;
+    const bmiValue = weightNum / (heightMeters * heightMeters);
+    const roundedBMI = Math.round(bmiValue * 10) / 10;
 
       let category: string;
       let eligible: boolean;
@@ -168,11 +167,17 @@ const Dashboard = () => {
         color
       };
 
-      setBmiResult(result);
-      setIsCalculating(false);
+    setBmiResult(result);
 
-      toast.success("BMI calculated successfully!");
-    }, 500);
+    try {
+      const res = await userApi.updateProfile({ height: heightNum, weight: weightNum, bmi: roundedBMI }, token!);
+      setUserData({ ...(user as any), ...(res.data as any) });
+      toast.success("Profile updated successfully");
+    } catch {
+      toast.error("Failed to update profile");
+    } finally {
+      setIsCalculating(false);
+    }
   };
 
   const getEligibilityText = (eligible: boolean) => {

@@ -99,3 +99,53 @@ exports.deleteUser = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Update authenticated user's profile (self)
+// @route   PUT /api/users/update-profile
+// @access  Private
+exports.updateMyProfile = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    // Only allow specific fields to be updated here
+    const allowed = [
+      "fullName",
+      "bloodGroup",
+      "age",
+      "weight",
+      "height",
+      "bmi",
+      "phone",
+      "city",
+      "state",
+      "lastDonationDate",
+      "available",
+    ];
+
+    const updates = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+
+    // Prevent password/role changes via this endpoint
+    delete updates.password;
+    delete updates.role;
+
+    // Ensure updatedAt changes even on findByIdAndUpdate
+    updates.updatedAt = new Date();
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updates, {
+      new: true,
+      runValidators: true,
+    }).select("-__v");
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const eligibility = checkEligibility(updatedUser.toObject());
+    res.json({ success: true, data: updatedUser, eligibility });
+  } catch (error) {
+    next(error);
+  }
+};

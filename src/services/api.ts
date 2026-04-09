@@ -86,6 +86,9 @@ export const userApi = {
   update: (id: string, body: Partial<DonorResult>, token: string) =>
     apiRequest<{ success: boolean; data: DonorResult; eligibility: EligibilityResult }>(`/users/${id}`, { method: "PUT", body, token }),
 
+  updateProfile: (body: Partial<DonorResult>, token: string) =>
+    apiRequest<{ success: boolean; data: DonorResult; eligibility: EligibilityResult }>("/users/update-profile", { method: "PUT", body, token }),
+
   getEligibility: (id: string, token: string) =>
     apiRequest<{ success: boolean; data: EligibilityResult }>(`/users/${id}/eligibility`, { token }),
 };
@@ -115,10 +118,12 @@ export interface AuthUser {
   city: string;
   state: string;
   available: boolean;
+  phone?: string;
   token: string;
   // Medical fields
   height?: number;
   weight?: number;
+  bmi?: number;
   age?: number;
   gender?: string;
   hemoglobin?: number;
@@ -143,6 +148,7 @@ export interface DonorResult {
   createdAt: string;
   height?: number;
   weight?: number;
+  bmi?: number;
   age?: number;
   gender?: string;
   hemoglobin?: number;

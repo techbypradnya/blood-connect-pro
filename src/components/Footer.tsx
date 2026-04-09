@@ -53,7 +53,7 @@ const Footer = () => (
         </div>
       </div>
       <div className="mt-8 border-t pt-6 text-center text-sm text-muted-foreground">
-        © 2026 BloodLink. All rights reserved. Built with ❤️ to save lives.
+        © 2026 BloodLink. All rights reserved.
       </div>
     </div>
   </footer>

@@ -10,6 +10,7 @@ import About from "./pages/About";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
 import Search from "./pages/Search";
 import EmergencyRequest from "./pages/EmergencyRequest";
 import Contact from "./pages/Contact";
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/reset-password/:token" element={<ResetPassword />} />
             <Route path="/verify-email/:token" element={<VerifyEmail />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/search" element={<Search />} />
             <Route path="/blood-camps" element={<BloodCamps />} />
             <Route path="/emergency-request" element={<EmergencyRequest />} />

@@ -5,6 +5,7 @@ interface AuthContextType {
   user: AuthUser | null;
   token: string | null;
   login: (userData: AuthUser) => void;
+  setUserData: (userData: AuthUser) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -35,6 +36,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("bloodconnect_user", JSON.stringify(userData));
   };
 
+  const setUserData = (userData: AuthUser) => {
+    setUser(userData);
+    setToken(userData.token);
+    localStorage.setItem("bloodconnect_user", JSON.stringify(userData));
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -42,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, token, login, setUserData, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );
