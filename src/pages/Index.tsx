@@ -270,7 +270,7 @@ const Landing = () => {
                 </Button>
               </Link>
               <Link to="/emergency-request">
-                <Button size="lg" variant="outline" className="gap-2 border-primary-foreground/30 text-base font-semibold text-primary-foreground hover:bg-primary-foreground/10">
+                <Button size="lg" variant="outline" className="gap-2 border-primary-foreground text-base font-semibold text-primary-foreground bg-primary-foreground/10 hover:bg-primary-foreground/20">
                   <AlertTriangle className="h-4 w-4" /> Emergency Request
                 </Button>
               </Link>
