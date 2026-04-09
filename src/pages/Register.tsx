@@ -86,8 +86,8 @@ const Register = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Field label="Full Name" name="name" placeholder="John Doe" value={form.name} error={errors.name} onChange={(v) => handleFieldChange("name", v)} />
-            <Field label="Email" name="email" type="email" placeholder="john@example.com" value={form.email} error={errors.email} onChange={(v) => handleFieldChange("email", v)} />
+            <Field label="Full Name" name="name" placeholder="xyz" value={form.name} error={errors.name} onChange={(v) => handleFieldChange("name", v)} />
+            <Field label="Email" name="email" type="email" placeholder="xyz@example.com" value={form.email} error={errors.email} onChange={(v) => handleFieldChange("email", v)} />
             <Field label="Password" name="password" type="password" placeholder="••••••••" value={form.password} error={errors.password} onChange={(v) => handleFieldChange("password", v)} />
             <Field label="Phone Number" name="phone" type="tel" placeholder="+91 98765 43210" value={form.phone} error={errors.phone} onChange={(v) => handleFieldChange("phone", v)} />
 
