@@ -1,24 +1,22 @@
-
-
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const helmet = require("helmet");
 
-
-
 const connectDB = require("./src/config/db");
 const errorHandler = require("./src/middlewares/errorHandler");
 const rateLimiter = require("./src/middlewares/rateLimiter");
 
-app.get("/", (req, res) => {
-  res.send("Blood Connect API is running 🚀");
-});
 // Load env variables FIRST
 dotenv.config();
 
 // Create express app FIRST
 const app = express();
+
+// ✅ NOW use app (after initialization)
+app.get("/", (req, res) => {
+  res.send("Blood Connect API is running 🚀");
+});
 
 // Connect to MongoDB
 connectDB();
